@@ -112,19 +112,25 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
           transition: 'background 0.2s, color 0.2s',
         }}
       >
-        <div className="tree-item-content">
+        <div
+          className="tree-item-content"
+          style={{ cursor: !isFolder ? 'pointer' : 'default', display: 'flex', alignItems: 'center' }}
+          onClick={() => {
+            if (!isFolder) toggleFileSelection(item.path);
+          }}
+        >
           {isFolder ? (
             <>
               <span
                 className={`folder-icon ${isExpanded ? 'expanded' : ''}`}
-                onClick={() => toggleFolder(item.path)}
+                onClick={e => { e.stopPropagation(); toggleFolder(item.path); }}
                 style={{ marginRight: 6 }}
               >
                 {isExpanded ? '📂' : '📁'}
               </span>
               <span
                 className="item-name folder-name"
-                onClick={() => toggleFolder(item.path)}
+                onClick={e => { e.stopPropagation(); toggleFolder(item.path); }}
                 style={{ fontWeight: 600, cursor: 'pointer' }}
               >
                 {item.name}
@@ -135,9 +141,11 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
               <input
                 type="checkbox"
                 checked={isSelected}
-                onChange={() => toggleFileSelection(item.path)}
+                onChange={e => { e.stopPropagation(); toggleFileSelection(item.path); }}
                 className="file-checkbox"
                 id={`file-checkbox-${item.path}`}
+                tabIndex={-1}
+                style={{ pointerEvents: 'none' }}
               />
               <span style={{ marginRight: 6 }}>📄</span>
               <span className="item-name file-name">{item.name}</span>

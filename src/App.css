@@ -20,6 +20,9 @@
   --header-text: white;
   --input-color: #1f2937;
   --input-bg: rgba(255, 255, 255, 0.7);
+  --scrollbar-bg: #e5e7eb;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #a1a1aa;
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 24px;
@@ -49,6 +52,9 @@
   --header-text: #f3f4f6;
   --input-color: #f3f4f6;
   --input-bg: rgba(30, 41, 59, 0.7);
+  --scrollbar-bg: #232634;
+  --scrollbar-thumb: #35394a;
+  --scrollbar-thumb-hover: #4b5563;
 }
 
 html,
@@ -159,6 +165,7 @@ button:disabled {
   padding: 1rem;
   font-size: 0.95em;
   transition: background 0.3s, color 0.3s;
+  overflow: auto;
 }
 
 .container {
@@ -505,4 +512,31 @@ label {
   margin-bottom: 0.5rem;
   font-size: 1rem;
   color: var(--light-text);
+}
+
+/* Custom scrollbars for scrollable elements */
+.tree-container,
+.config-content,
+.output-preview pre {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bg);
+}
+.tree-container::-webkit-scrollbar,
+.config-content::-webkit-scrollbar,
+.output-preview pre::-webkit-scrollbar {
+  width: 8px;
+  background: var(--scrollbar-bg);
+  border-radius: 8px;
+}
+.tree-container::-webkit-scrollbar-thumb,
+.config-content::-webkit-scrollbar-thumb,
+.output-preview pre::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.tree-container::-webkit-scrollbar-thumb:hover,
+.config-content::-webkit-scrollbar-thumb:hover,
+.output-preview pre::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
