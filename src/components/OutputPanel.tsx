@@ -20,6 +20,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   disabled
 }) => {
   const [showPreview, setShowPreview] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Truncate content for preview
   const getPreviewContent = () => {
@@ -27,6 +28,28 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
       return output.combined_content.substring(0, 1000) + '...\n\n[Content truncated for preview]';
     }
     return output.combined_content;
+  };
+
+  // Download output as file
+  const handleDownload = () => {
+    const blob = new Blob([output.combined_content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gptree-output.txt';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  };
+
+  // Copy with feedback
+  const handleCopy = () => {
+    onCopyToClipboard();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
@@ -41,17 +64,23 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
 
       <div className="output-actions">
         <button
-          onClick={onCopyToClipboard}
+          onClick={handleCopy}
           disabled={disabled}
           className="primary-button"
         >
-          Copy to Clipboard
+          {copied ? 'Copied!' : 'Copy to Clipboard'}
         </button>
         <button
           onClick={onOpenFile}
           disabled={disabled}
         >
           Open Output File
+        </button>
+        <button
+          onClick={handleDownload}
+          disabled={disabled}
+        >
+          Download
         </button>
         <button
           onClick={() => setShowPreview(!showPreview)}

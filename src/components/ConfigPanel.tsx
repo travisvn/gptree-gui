@@ -40,17 +40,16 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
   };
 
   return (
-    <div className="config-panel">
-      <div className="config-header" onClick={() => setIsExpanded(!isExpanded)}>
-        <h3>Configuration {isExpanded ? '▼' : '►'}</h3>
+    <div className="config-panel" style={{ border: '1px solid var(--border-color)', background: 'var(--light-bg)', color: 'var(--text-color)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderRadius: 8 }}>
+      <div className="config-header" onClick={() => setIsExpanded(!isExpanded)} style={{ userSelect: 'none', fontWeight: 600 }}>
+        <h3 style={{ margin: 0 }}>Configuration {isExpanded ? '▼' : '►'}</h3>
       </div>
 
       {isExpanded && (
         <div className="config-content">
           <div className="config-section">
             <h4>File Selection</h4>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 id="use-git-ignore"
@@ -60,8 +59,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
               />
               <label htmlFor="use-git-ignore">Respect .gitignore</label>
             </div>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 id="show-ignored-in-tree"
@@ -71,8 +69,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
               />
               <label htmlFor="show-ignored-in-tree">Show ignored files in tree</label>
             </div>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 id="show-default-ignored-in-tree"
@@ -88,8 +85,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
 
           <div className="config-section">
             <h4>File Types</h4>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <label htmlFor="include-file-types">Include file types:</label>
               <input
                 type="text"
@@ -98,10 +94,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
                 onChange={(e) => handleChange('include_file_types', e.target.value)}
                 placeholder="* for all, or .py,.js,..."
                 disabled={disabled}
+                style={{ background: 'var(--background)', color: 'var(--text-color)' }}
               />
             </div>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <label htmlFor="exclude-file-types">Exclude file types:</label>
               <input
                 type="text"
@@ -110,14 +106,14 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
                 onChange={(e) => handleExcludeFileTypesChange(e.target.value)}
                 placeholder=".log,.tmp,..."
                 disabled={disabled}
+                style={{ background: 'var(--background)', color: 'var(--text-color)' }}
               />
             </div>
           </div>
 
           <div className="config-section">
             <h4>Output Options</h4>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <label htmlFor="output-file">Output file name:</label>
               <input
                 type="text"
@@ -125,10 +121,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
                 value={config.output_file}
                 onChange={(e) => handleChange('output_file', e.target.value)}
                 disabled={disabled}
+                style={{ background: 'var(--background)', color: 'var(--text-color)' }}
               />
             </div>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 id="output-file-locally"
@@ -138,8 +134,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
               />
               <label htmlFor="output-file-locally">Save output in current working directory</label>
             </div>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 id="copy-to-clipboard"
@@ -149,8 +144,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
               />
               <label htmlFor="copy-to-clipboard">Automatically copy to clipboard</label>
             </div>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 id="line-numbers"
@@ -162,10 +156,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
             </div>
           </div>
 
-          <div className="config-section">
+          <div className="config-section" style={{ borderBottom: 'none' }}>
             <h4>Safety & Storage</h4>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 id="safe-mode"
@@ -177,8 +170,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
                 Safe mode (prevent processing too many files or large files)
               </label>
             </div>
-
-            <div className="config-option">
+            <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"
                 id="store-files-chosen"

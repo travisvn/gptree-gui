@@ -5,7 +5,8 @@
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafb);
 }
-:root {
+:root,
+.theme-light {
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
   --text-color: #1f2937;
@@ -17,9 +18,8 @@
   --error-color: #ef4444;
   --header-bg: #1e3a8a;
   --header-text: white;
-
-  --input-color: #ffffff;
-  --input-bg: rgba(255, 255, 255, 0.1);
+  --input-color: #1f2937;
+  --input-bg: rgba(255, 255, 255, 0.7);
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 24px;
@@ -34,6 +34,131 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+}
+.theme-dark {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --text-color: #f3f4f6;
+  --light-text: #a1a1aa;
+  --background: #181a20;
+  --light-bg: #232634;
+  --border-color: #232634;
+  --success-color: #10b981;
+  --error-color: #ef4444;
+  --header-bg: #232634;
+  --header-text: #f3f4f6;
+  --input-color: #f3f4f6;
+  --input-bg: rgba(30, 41, 59, 0.7);
+}
+
+html,
+body,
+.app-container {
+  background-color: var(--background) !important;
+  color: var(--text-color) !important;
+  transition: background 0.3s, color 0.3s;
+}
+
+input,
+button {
+  color: var(--input-color);
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  transition: background 0.3s, color 0.3s, border 0.3s;
+}
+
+button.primary-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+button.primary-button:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-header {
+  background-color: var(--header-bg);
+  color: var(--header-text);
+  transition: background 0.3s, color 0.3s;
+}
+
+.directory-panel,
+.config-panel,
+.output-panel {
+  background-color: var(--light-bg);
+  color: var(--text-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: background 0.3s, color 0.3s;
+}
+
+.tree-controls,
+.file-actions,
+.config-header,
+.output-header {
+  border-bottom: 1px solid var(--border-color);
+  transition: border 0.3s;
+}
+
+.tree-item-content {
+  background: none;
+  color: var(--text-color);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.25rem 0.25rem 0;
+  transition: background 0.3s, color 0.3s;
+}
+
+.tree-item-content:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.folder-icon,
+.item-name {
+  color: var(--text-color);
+  transition: color 0.3s;
+}
+
+.folder-icon.expanded {
+  color: var(--primary-color);
+}
+
+.file-checkbox:checked + .file-name {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.tree-children {
+  border-left: 2px solid var(--border-color);
+  margin-left: 1.2rem;
+  padding-left: 0.3rem;
+  transition: border 0.3s;
+}
+
+.config-section {
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1.2rem;
+  padding-bottom: 1.2rem;
+  transition: border 0.3s;
+}
+
+.config-section:last-child {
+  border-bottom: none;
+}
+
+.output-preview pre {
+  background-color: var(--background);
+  color: var(--text-color);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  font-size: 0.95em;
+  transition: background 0.3s, color 0.3s;
 }
 
 .container {
@@ -83,9 +208,6 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  color: var(--input-color);
-  /* background-color: #ffffff; */
-  background-color: var(--input-bg);
   transition: border-color 0.25s;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
@@ -111,32 +233,6 @@ button {
   margin-right: 5px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #2f2f2f;
-
-    --input-color: #ffffff;
-    /* --input-bg: #0f0f0f98; */
-    --input-bg: rgba(0, 0, 0, 0.7);
-
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    /* color: #ffffff; */
-    /* background-color: #0f0f0f98; */
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
-
 * {
   box-sizing: border-box;
   margin: 0;
@@ -146,8 +242,6 @@ button {
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  color: var(--text-color);
-  background-color: var(--background);
   line-height: 1.6;
 }
 
@@ -155,8 +249,6 @@ button {
   cursor: pointer;
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
-  border: 1px solid var(--border-color);
-  background-color: var(--input-bg);
   font-size: 0.875rem;
   transition: all 0.2s;
   opacity: 0.8;
@@ -168,25 +260,9 @@ button:hover:not(:disabled) {
   transition: all 0.2s;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.primary-button {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-}
-
-.primary-button:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-}
-
 input[type='text'] {
   padding: 0.5rem;
   border-radius: 0.375rem;
-  border: 1px solid var(--border-color);
   font-size: 0.875rem;
   width: 100%;
 }
@@ -205,8 +281,6 @@ label {
 }
 
 .app-header {
-  background-color: var(--header-bg);
-  color: var(--header-text);
   padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
@@ -250,9 +324,6 @@ label {
 /* Directory Panel */
 .directory-panel {
   flex: 2;
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -276,7 +347,6 @@ label {
   justify-content: space-between;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
 }
 
 .tree-container {
@@ -337,7 +407,6 @@ label {
   align-items: center;
   padding-top: 1rem;
   margin-top: 1rem;
-  border-top: 1px solid var(--border-color);
 }
 
 /* Side Panel */
@@ -352,16 +421,12 @@ label {
 
 /* Config Panel */
 .config-panel {
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
 .config-header {
   padding: 1rem;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -404,9 +469,6 @@ label {
 
 /* Output Panel */
 .output-panel {
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 1rem;
 }
 
@@ -437,22 +499,10 @@ label {
 .output-preview {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
 }
 
 .output-preview h4 {
   margin-bottom: 0.5rem;
   font-size: 1rem;
   color: var(--light-text);
-}
-
-.output-preview pre {
-  background-color: var(--light-bg);
-  padding: 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  max-height: 300px;
-  overflow-y: auto;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, createContext, useContext } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import DirectoryTree from "./components/DirectoryTree";
@@ -37,6 +37,34 @@ interface OutputContent {
   estimated_tokens: number;
 }
 
+// Theme context and provider
+const ThemeContext = createContext({ theme: "light", toggleTheme: () => { } });
+
+function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const getInitialTheme = () => {
+    const stored = localStorage.getItem("theme");
+    if (stored) return stored;
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return "dark";
+    }
+    return "light";
+  };
+  const [theme, setTheme] = useState<string>(getInitialTheme());
+  useEffect(() => {
+    document.documentElement.classList.remove("theme-light", "theme-dark");
+    document.documentElement.classList.add(`theme-${theme}`);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+  const toggleTheme = () => setTheme(theme === "light" ? "dark" : "light");
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
+  );
+}
+
+function useTheme() {
+  return useContext(ThemeContext);
+}
+
 function App() {
   const [currentDirectory, setCurrentDirectory] = useState<string>("");
   const [directoryTree, setDirectoryTree] = useState<DirectoryItem | null>(null);
@@ -45,6 +73,7 @@ function App() {
   const [output, setOutput] = useState<OutputContent | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const { theme, toggleTheme } = useTheme();
 
   // Select a directory
   const handleSelectDirectory = async () => {
@@ -224,6 +253,9 @@ function App() {
       <header className="app-header">
         <h1>GPTree</h1>
         <div className="header-controls">
+          <button onClick={toggleTheme} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`} style={{ fontSize: "1.3em", background: "none", border: "none", marginRight: "0.5em" }}>
+            {theme === "light" ? "🌙" : "☀️"}
+          </button>
           <button
             onClick={handleSelectDirectory}
             disabled={loading}
@@ -297,4 +329,6 @@ function App() {
   );
 }
 
-export default App;
+export default function AppWithThemeProvider() {
+  return <ThemeProvider><App /></ThemeProvider>;
+}

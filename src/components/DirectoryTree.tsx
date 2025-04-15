@@ -98,21 +98,34 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
   const renderTreeItem = (item: DirectoryItem) => {
     const isExpanded = expandedFolders.has(item.path);
     const isSelected = localSelectedFiles.has(item.path);
-
+    const isFolder = item.is_dir;
     return (
-      <div key={item.path} className="tree-item">
+      <div
+        key={item.path}
+        className={`tree-item${isSelected && !isFolder ? ' selected' : ''}`}
+        style={{
+          background: isSelected && !isFolder ? 'var(--primary-color)' : 'none',
+          color: isSelected && !isFolder ? 'white' : 'inherit',
+          borderRadius: 6,
+          marginBottom: 2,
+          paddingLeft: 2,
+          transition: 'background 0.2s, color 0.2s',
+        }}
+      >
         <div className="tree-item-content">
-          {item.is_dir ? (
+          {isFolder ? (
             <>
               <span
                 className={`folder-icon ${isExpanded ? 'expanded' : ''}`}
                 onClick={() => toggleFolder(item.path)}
+                style={{ marginRight: 6 }}
               >
-                {isExpanded ? '▼' : '►'}
+                {isExpanded ? '📂' : '📁'}
               </span>
               <span
                 className="item-name folder-name"
                 onClick={() => toggleFolder(item.path)}
+                style={{ fontWeight: 600, cursor: 'pointer' }}
               >
                 {item.name}
               </span>
@@ -124,12 +137,13 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
                 checked={isSelected}
                 onChange={() => toggleFileSelection(item.path)}
                 className="file-checkbox"
+                id={`file-checkbox-${item.path}`}
               />
+              <span style={{ marginRight: 6 }}>📄</span>
               <span className="item-name file-name">{item.name}</span>
             </>
           )}
         </div>
-
         {item.is_dir && isExpanded && (
           <div className="tree-children">
             {item.children.map(renderTreeItem)}
