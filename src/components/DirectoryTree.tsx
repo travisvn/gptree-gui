@@ -162,7 +162,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
   };
 
   return (
-    <div className="directory-tree">
+    <div className="directory-tree overflow-y-auto h-full">
       <div className="tree-controls">
         <div className="tree-select-controls">
           <input

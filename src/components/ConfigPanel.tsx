@@ -40,13 +40,21 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
   };
 
   return (
-    <div className="config-panel" style={{ border: '1px solid var(--border-color)', background: 'var(--light-bg)', color: 'var(--text-color)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderRadius: 8 }}>
+    <div
+      className="config-panel"
+      style={{
+        border: '1px solid var(--border-color)',
+        background: 'var(--light-bg)',
+        color: 'var(--text-color)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        borderRadius: 8
+      }}>
       <div className="config-header" onClick={() => setIsExpanded(!isExpanded)} style={{ userSelect: 'none', fontWeight: 600 }}>
         <h3 style={{ margin: 0 }}>Configuration {isExpanded ? '▼' : '►'}</h3>
       </div>
 
       {isExpanded && (
-        <div className="config-content">
+        <div className="config-content max-h-[calc(100vh-20rem)] overflow-y-auto">
           <div className="config-section">
             <h4>File Selection</h4>
             <div className="config-option" style={{ alignItems: 'center', gap: 8 }}>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
-import "./styles.css";
+// import "./styles.css";
 import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
@@ -277,7 +276,9 @@ function App() {
 
       // If no last directory or failed to load, ask for new one
       if (!lastDirLoaded && !currentDirectory) {
-        handleSelectDirectory();
+        // handleSelectDirectory();
+        setCurrentDirectory('/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1');
+        await loadDirectory('/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1');
       }
     };
 
@@ -285,7 +286,7 @@ function App() {
   }, []);
 
   return (
-    <div className="app-container">
+    <div className=" max-h-[100vh] flex flex-col max-w-[100vw] mr-0 min-h-full">
       <header className="app-header">
         <h1 className="text-2xl font-bold">GPTree</h1>
         <div className="header-controls">
@@ -312,16 +313,18 @@ function App() {
         </div>
       )}
 
-      <div className="main-content">
+      <div className="flex flex-row gap-2 m-2 pr-4  flex-grow">
         {directoryTree && (
-          <div className="directory-panel">
-            <h2>Project Files</h2>
-            <DirectoryTree
-              tree={directoryTree}
-              onFileSelection={handleFileSelection}
-              selectedFiles={selectedFiles}
-            />
-            <div className="file-actions">
+          <div className="overflow-y-auto max-h-full max-w-full p-2 min-h-full directory-panel ">
+            <h2 className=" text-2xl font-bold">Project Files</h2>
+            <div className="flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-15rem)] flex-grow h-full">
+              <DirectoryTree
+                tree={directoryTree}
+                onFileSelection={handleFileSelection}
+                selectedFiles={selectedFiles}
+              />
+            </div>
+            <div className="file-actions max-h-min">
               <span>{selectedFiles?.length} files selected</span>
               {config && config?.previous_files?.length > 0 && (
                 <button
@@ -342,7 +345,7 @@ function App() {
           </div>
         )}
 
-        <div className="side-panel">
+        <div className="side-panel flex flex-col gap-2">
           {config && (
             <ConfigPanel
               config={config}
@@ -361,6 +364,8 @@ function App() {
           )}
         </div>
       </div>
+
+      <div className="flex-shrink bg-red-300"></div>
     </div>
   );
 }

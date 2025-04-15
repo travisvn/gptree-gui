@@ -37,6 +37,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  /* --spacing: 1rem; */
 }
 .theme-dark {
   --primary-color: #2563eb;
@@ -63,6 +65,16 @@ body,
   background-color: var(--background) !important;
   color: var(--text-color) !important;
   transition: background 0.3s, color 0.3s;
+}
+
+html,
+body,
+.root {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  /* min-height: 100vh; */
+  height: 100%;
 }
 
 input,
@@ -242,8 +254,8 @@ button {
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  /* margin: 0; */
+  /* padding: 0; */
 }
 
 body {
@@ -331,7 +343,9 @@ label {
 
 /* Directory Panel */
 .directory-panel {
-  flex: 2 1 0;
+  /* flex: 2 1 0; */
+  flex: 1;
+  flex-direction: row;
   min-width: 220px;
   max-width: 60vw;
   width: 100%;
@@ -348,6 +362,7 @@ label {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-grow: 1;
 }
 
 .tree-controls {
@@ -415,6 +430,7 @@ label {
   align-items: center;
   padding-top: 1rem;
   margin-top: 1rem;
+  flex-grow: 0;
 }
 
 /* Side Panel */
@@ -432,7 +448,8 @@ label {
 }
 
 .config-header {
-  padding: 1rem;
+  /* padding: 1rem; */
+  padding: 0.5rem;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -446,7 +463,7 @@ label {
 
 .config-content {
   padding: 1rem;
-  max-height: 75vh;
+  /* max-height: 75vh; */
   overflow-y: auto;
 }
 
@@ -578,7 +595,7 @@ label {
   }
   .directory-panel,
   .side-panel {
-    padding: 0.5rem;
+    /* padding: 0.5rem; */
   }
   .output-panel,
   .config-panel {

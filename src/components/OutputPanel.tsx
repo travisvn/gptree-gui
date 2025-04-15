@@ -53,7 +53,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   };
 
   return (
-    <div className="output-panel">
+    <div className="output-panel overflow-y-auto max-h-full max-w-full">
       <div className="output-header">
         <h3>Output</h3>
         <div className="output-stats">
@@ -62,7 +62,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         </div>
       </div>
 
-      <div className="output-actions">
+      <div className="flex flex-row gap-2 items-center justify-center mb-2">
         <button
           onClick={handleCopy}
           disabled={disabled}
@@ -76,6 +76,8 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         >
           Open Output File
         </button>
+      </div>
+      <div className="flex flex-row gap-2 items-center justify-center">
         <button
           onClick={handleDownload}
           disabled={disabled}
