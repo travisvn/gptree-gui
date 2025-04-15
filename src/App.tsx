@@ -4,6 +4,7 @@ import "./App.css";
 import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
+import { app } from '@tauri-apps/api';
 
 // Types
 interface DirectoryItem {
@@ -190,7 +191,7 @@ function App() {
       : `${currentDirectory}/${config.output_file}`;
 
     try {
-      await invoke("open_output_file", { path: outputPath });
+      await invoke("open_output_file", { app: app, path: outputPath });
     } catch (err) {
       setError(`Error opening file: ${err}`);
     }
@@ -253,8 +254,8 @@ function App() {
               selectedFiles={selectedFiles}
             />
             <div className="file-actions">
-              <span>{selectedFiles.length} files selected</span>
-              {config && config.previous_files.length > 0 && (
+              <span>{selectedFiles?.length} files selected</span>
+              {config && config?.previous_files?.length > 0 && (
                 <button
                   onClick={handleUsePreviousFiles}
                   disabled={loading}

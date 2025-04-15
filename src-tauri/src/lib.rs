@@ -1,15 +1,17 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
 // Modules
-mod models;
-mod fs;
 mod config;
+mod fs;
+mod models;
 mod processor;
 
-use std::path::{Path, PathBuf};
 use models::{AppError, Config, DirectoryItem, OutputContent};
-use serde::{Serialize, Deserialize};
-use tauri::State;
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
+use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_opener::OpenerExt;
+// use tauri_plugin_clipboard_manager::ClipboardExt;
 
 // Store the app state
 struct AppState {
@@ -45,22 +47,27 @@ impl<T> CommandResult<T> {
 
 // Command to select a directory
 #[tauri::command]
-async fn select_directory() -> CommandResult<String> {
-    let dialog = tauri_plugin_dialog::DialogBuilder::new();
-    match dialog.pick_folder() {
-        Some(path) => CommandResult::success(path.to_string_lossy().to_string()),
-        None => CommandResult::error("No directory selected".to_string()),
+async fn select_directory(app: tauri::AppHandle) -> Result<CommandResult<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let file_path = app.dialog().file().blocking_pick_folder();
+    match file_path {
+        Some(path) => Ok(CommandResult::success(path.to_string())),
+        None => Ok(CommandResult::error("No directory selected".to_string())),
     }
 }
 
 // Command to load a directory and its structure
 #[tauri::command]
-async fn load_directory(path: String, state: tauri::State<'_, AppState>) -> CommandResult<DirectoryItem> {
+async fn load_directory(
+    path: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<CommandResult<DirectoryItem>, String> {
     let path = Path::new(&path);
-    
+
     // Update the current directory
     *state.current_dir.lock().unwrap() = path.to_path_buf();
-    
+
     // Try to load project config
     match config::load_or_create_project_config(path) {
         Ok(project_config) => {
@@ -69,7 +76,7 @@ async fn load_directory(path: String, state: tauri::State<'_, AppState>) -> Comm
                 Ok(global_config) => global_config,
                 Err(_) => Config::default(),
             };
-            
+
             // Project config takes precedence for most settings
             config.use_git_ignore = project_config.use_git_ignore;
             config.include_file_types = project_config.include_file_types;
@@ -82,10 +89,10 @@ async fn load_directory(path: String, state: tauri::State<'_, AppState>) -> Comm
             config.show_ignored_in_tree = project_config.show_ignored_in_tree;
             config.show_default_ignored_in_tree = project_config.show_default_ignored_in_tree;
             config.previous_files = project_config.previous_files;
-            
+
             // Update the state
             *state.current_config.lock().unwrap() = config.clone();
-            
+
             // Load directory tree
             match fs::get_directory_tree(
                 path,
@@ -93,33 +100,47 @@ async fn load_directory(path: String, state: tauri::State<'_, AppState>) -> Comm
                 config.show_ignored_in_tree,
                 config.show_default_ignored_in_tree,
             ) {
-                Ok(tree) => CommandResult::success(tree),
-                Err(e) => CommandResult::error(format!("Failed to get directory tree: {}", e)),
+                Ok(tree) => Ok(CommandResult::success(tree)),
+                Err(e) => Ok(CommandResult::error(format!(
+                    "Failed to get directory tree: {}",
+                    e
+                ))),
             }
-        },
-        Err(e) => CommandResult::error(format!("Failed to load config: {}", e)),
+        }
+        Err(e) => Ok(CommandResult::error(format!(
+            "Failed to load config: {}",
+            e
+        ))),
     }
 }
 
 // Command to get the current configuration
 #[tauri::command]
-async fn get_config(state: tauri::State<'_, AppState>) -> CommandResult<Config> {
-    CommandResult::success(state.current_config.lock().unwrap().clone())
+async fn get_config(state: tauri::State<'_, AppState>) -> Result<CommandResult<Config>, String> {
+    Ok(CommandResult::success(
+        state.current_config.lock().unwrap().clone(),
+    ))
 }
 
 // Command to update the configuration
 #[tauri::command]
-async fn update_config(config: Config, state: tauri::State<'_, AppState>) -> CommandResult<bool> {
+async fn update_config(
+    config: Config,
+    state: tauri::State<'_, AppState>,
+) -> Result<CommandResult<bool>, String> {
     let mut current_config = state.current_config.lock().unwrap();
     *current_config = config.clone();
-    
+
     // Save to project config
     let current_dir = state.current_dir.lock().unwrap().clone();
     let config_path = current_dir.join(".gptree_config");
-    
+
     match config::save_config(&config_path, &config, false) {
-        Ok(_) => CommandResult::success(true),
-        Err(e) => CommandResult::error(format!("Failed to save config: {}", e)),
+        Ok(_) => Ok(CommandResult::success(true)),
+        Err(e) => Ok(CommandResult::error(format!(
+            "Failed to save config: {}",
+            e
+        ))),
     }
 }
 
@@ -128,10 +149,10 @@ async fn update_config(config: Config, state: tauri::State<'_, AppState>) -> Com
 async fn generate_output(
     selected_files: Vec<String>,
     state: tauri::State<'_, AppState>,
-) -> CommandResult<OutputContent> {
+) -> Result<CommandResult<OutputContent>, String> {
     let config = state.current_config.lock().unwrap().clone();
     let current_dir = state.current_dir.lock().unwrap().clone();
-    
+
     // Process the files
     match processor::combine_files_with_structure(&current_dir, &config, &selected_files) {
         Ok(output) => {
@@ -140,36 +161,46 @@ async fn generate_output(
                 let config_path = current_dir.join(".gptree_config");
                 let _ = config::update_previous_files(&config_path, &selected_files, &current_dir);
             }
-            
+
             // Process the output (save to file)
             match processor::process_output(&output, &config, &current_dir) {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => eprintln!("Warning: Failed to save output: {}", e),
             }
-            
-            CommandResult::success(output)
-        },
-        Err(e) => CommandResult::error(format!("Failed to generate output: {}", e)),
+
+            Ok(CommandResult::success(output))
+        }
+        Err(e) => Ok(CommandResult::error(format!(
+            "Failed to generate output: {}",
+            e
+        ))),
     }
 }
 
 // Command to copy content to clipboard
 #[tauri::command]
-async fn copy_to_clipboard(content: String) -> CommandResult<bool> {
-    use tauri_plugin_clipboard::ClipboardExt;
-    
-    tauri::Builder::default().any_context().clipboard().write_text(content);
-    CommandResult::success(true)
+async fn copy_to_clipboard(
+    app: tauri::AppHandle,
+    content: String,
+) -> Result<CommandResult<bool>, String> {
+    match app.clipboard().write_text(content) {
+        Ok(_) => Ok(CommandResult::success(true)),
+        Err(e) => Ok(CommandResult::error(format!(
+            "Failed to copy to clipboard: {}",
+            e
+        ))),
+    }
 }
 
 // Command to open the output file
 #[tauri::command]
-async fn open_output_file(path: String) -> CommandResult<bool> {
-    use tauri_plugin_opener::OpenerExt;
-    
-    match tauri::Builder::default().any_context().opener().open_path(path) {
-        Ok(_) => CommandResult::success(true),
-        Err(e) => CommandResult::error(format!("Failed to open file: {}", e)),
+async fn open_output_file(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<CommandResult<bool>, String> {
+    match app.opener().open_path(&path, None::<&str>) {
+        Ok(_) => Ok(CommandResult::success(true)),
+        Err(e) => Ok(CommandResult::error(format!("Failed to open file: {}", e))),
     }
 }
 
@@ -179,13 +210,12 @@ pub fn run() {
         current_config: std::sync::Mutex::new(Config::default()),
         current_dir: std::sync::Mutex::new(PathBuf::from(".")),
     };
-    
+
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_clipboard::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             select_directory,
