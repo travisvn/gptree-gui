@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+import "./styles.css";
 import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
@@ -251,7 +252,7 @@ function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>GPTree</h1>
+        <h1 className="text-2xl font-bold">GPTree</h1>
         <div className="header-controls">
           <button onClick={toggleTheme} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`} style={{ fontSize: "1.3em", background: "none", border: "none", marginRight: "0.5em" }}>
             {theme === "light" ? "🌙" : "☀️"}
