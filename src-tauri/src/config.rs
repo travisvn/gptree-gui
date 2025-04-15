@@ -112,6 +112,13 @@ fn load_config(config_path: &Path) -> Result<Config, AppError> {
                         value.split(',').map(|s| s.trim().to_string()).collect()
                     };
                 }
+                "lastDirectory" => {
+                    config.last_directory = if value.is_empty() {
+                        None
+                    } else {
+                        Some(value.to_string())
+                    };
+                }
                 _ => {}
             }
         }
@@ -186,6 +193,16 @@ pub fn save_config(config_path: &Path, config: &Config, is_global: bool) -> Resu
         writeln!(file, "previousFiles: {}", config.previous_files.join(","))?;
     }
 
+    // Add last directory to configuration
+    if is_global {
+        writeln!(file, "# Last selected directory")?;
+        writeln!(
+            file,
+            "lastDirectory: {}",
+            config.last_directory.as_deref().unwrap_or("")
+        )?;
+    }
+
     Ok(())
 }
 
@@ -215,6 +232,28 @@ pub fn update_previous_files(
 
     // Save updated config
     save_config(config_path, &config, false)
+}
+
+/// Update the last directory in the configuration
+pub fn update_last_directory(path: &Path) -> Result<(), AppError> {
+    // Get home directory for global config
+    let home_dir = dirs::home_dir()
+        .ok_or_else(|| AppError::Config("Could not find home directory".to_string()))?;
+
+    let config_path = home_dir.join(GLOBAL_CONFIG_FILE);
+
+    // Load existing config or create a new one
+    let mut config = if config_path.exists() {
+        load_config(&config_path)?
+    } else {
+        Config::default()
+    };
+
+    // Update the last directory
+    config.last_directory = Some(path.to_string_lossy().to_string());
+
+    // Save the updated config
+    save_config(&config_path, &config, true)
 }
 
 /// Migrate a config to the current version

@@ -76,6 +76,33 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
 
+  // Check for last used directory
+  const checkLastDirectory = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await invoke<{ success: boolean; data?: string | null; error?: string }>(
+        "get_last_directory"
+      );
+
+      if (result.success && result.data) {
+        const path = result.data;
+        setCurrentDirectory(path);
+        await loadDirectory(path);
+        return true; // Successfully loaded
+      } else if (result.error) {
+        console.error("Error loading last directory:", result.error);
+      }
+      return false; // No last directory or failed to load
+    } catch (err) {
+      console.error("Error checking last directory:", err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Select a directory
   const handleSelectDirectory = async () => {
     try {
@@ -242,11 +269,19 @@ function App() {
     setSelectedFiles(absolutePaths);
   };
 
-  // When app loads, offer to select a directory
+  // When app loads, check for last directory
   useEffect(() => {
-    if (!currentDirectory) {
-      handleSelectDirectory();
-    }
+    const init = async () => {
+      // Try to load the last directory first
+      const lastDirLoaded = await checkLastDirectory();
+
+      // If no last directory or failed to load, ask for new one
+      if (!lastDirLoaded && !currentDirectory) {
+        handleSelectDirectory();
+      }
+    };
+
+    init();
   }, []);
 
   return (

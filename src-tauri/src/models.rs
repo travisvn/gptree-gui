@@ -33,6 +33,8 @@ pub struct Config {
     pub show_default_ignored_in_tree: bool,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub previous_files: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub last_directory: Option<String>,
 }
 
 impl Default for Config {
@@ -51,6 +53,7 @@ impl Default for Config {
             show_ignored_in_tree: false,
             show_default_ignored_in_tree: false,
             previous_files: Vec::new(),
+            last_directory: None,
         }
     }
 }

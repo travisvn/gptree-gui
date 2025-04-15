@@ -52,7 +52,13 @@ async fn select_directory(app: tauri::AppHandle) -> Result<CommandResult<String>
 
     let file_path = app.dialog().file().blocking_pick_folder();
     match file_path {
-        Some(path) => Ok(CommandResult::success(path.to_string())),
+        Some(path) => {
+            // Save the selected directory
+            if let Err(e) = config::update_last_directory(Path::new(&path.to_string())) {
+                eprintln!("Warning: Failed to save last directory: {}", e);
+            }
+            Ok(CommandResult::success(path.to_string()))
+        }
         None => Ok(CommandResult::error("No directory selected".to_string())),
     }
 }
@@ -67,6 +73,11 @@ async fn load_directory(
 
     // Update the current directory
     *state.current_dir.lock().unwrap() = path.to_path_buf();
+
+    // Save the selected directory
+    if let Err(e) = config::update_last_directory(path) {
+        eprintln!("Warning: Failed to save last directory: {}", e);
+    }
 
     // Try to load project config
     match config::load_or_create_project_config(path) {
@@ -204,6 +215,18 @@ async fn open_output_file(
     }
 }
 
+// Command to get the last selected directory
+#[tauri::command]
+async fn get_last_directory() -> Result<CommandResult<Option<String>>, String> {
+    match config::load_or_create_global_config() {
+        Ok(config) => Ok(CommandResult::success(config.last_directory)),
+        Err(e) => Ok(CommandResult::error(format!(
+            "Failed to load config: {}",
+            e
+        ))),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app_state = AppState {
@@ -225,6 +248,7 @@ pub fn run() {
             generate_output,
             copy_to_clipboard,
             open_output_file,
+            get_last_directory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
