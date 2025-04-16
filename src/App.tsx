@@ -80,6 +80,8 @@ function App() {
   const [localConfig, setLocalConfig] = useState<Config | null>(null);
   const [configMode, setConfigMode] = useState<'global' | 'local'>('global');
 
+  const [pendingClipboardCopy, setPendingClipboardCopy] = useState(false);
+
   // Check for last used directory
   const checkLastDirectory = async () => {
     try {
@@ -214,9 +216,8 @@ function App() {
 
       if (result.success && result.data) {
         setOutput(result.data);
-
         if (config?.copy_to_clipboard) {
-          await handleCopyToClipboard();
+          setPendingClipboardCopy(true);
         }
       } else if (result.error) {
         setError(result.error);
@@ -293,6 +294,14 @@ function App() {
 
     init();
   }, []);
+
+  // Effect: perform clipboard copy after output is set
+  useEffect(() => {
+    if (pendingClipboardCopy && output) {
+      handleCopyToClipboard();
+      setPendingClipboardCopy(false);
+    }
+  }, [output, pendingClipboardCopy]);
 
   return (
     <div className=" max-h-[100vh] flex flex-col max-w-[100vw] mr-0 min-h-full">

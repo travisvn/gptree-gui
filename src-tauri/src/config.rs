@@ -27,10 +27,16 @@ pub fn load_or_create_global_config() -> Result<Config, AppError> {
     let config_path = home_dir.join(GLOBAL_CONFIG_FILE);
     if config_path.exists() {
         let config = load_config(&config_path)?;
-        let config = migrate_config(config, true);
-        // Save migrated config if needed
-        save_config(&config_path, &config, true)?;
-        Ok(config)
+        let migrated = migrate_config(config.clone(), true);
+        if migrated != config {
+            // Only save if migration changed something
+            eprintln!(
+                "[GPTree] Saving migrated global config to {:?}",
+                config_path
+            );
+            save_config(&config_path, &migrated, true)?;
+        }
+        Ok(migrated)
     } else {
         let mut config = Config::default();
         // Remove project-specific fields for global config

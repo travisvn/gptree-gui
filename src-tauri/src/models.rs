@@ -17,7 +17,7 @@ pub const DEFAULT_IGNORES: [&str; 6] = [
 pub const SAFE_MODE_MAX_FILES: usize = 30;
 pub const SAFE_MODE_MAX_LENGTH: usize = 100_000; // ~25K tokens
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Config {
     pub version: u32,
     pub use_git_ignore: bool,
