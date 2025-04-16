@@ -209,6 +209,10 @@ function App() {
 
       if (result.success && result.data) {
         setOutput(result.data);
+
+        if (config?.copy_to_clipboard) {
+          await handleCopyToClipboard();
+        }
       } else if (result.error) {
         setError(result.error);
       }
@@ -308,7 +312,7 @@ function App() {
       </header>
 
       {error && (
-        <div className={`error-message ${error === "Copied to clipboard!" ? "success" : ""}`}>
+        <div className={`error-message ${error === "Copied to clipboard!" ? "success" : ""} absolute top-0 left-0 w-full`}>
           {error}
         </div>
       )}

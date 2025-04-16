@@ -95,7 +95,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
       {showPreview && (
         <div className="output-preview">
           <h4>Content Preview</h4>
-          <pre>{getPreviewContent()}</pre>
+          <pre className="max-h-[calc(100svh-25rem)] overflow-y-auto">{getPreviewContent()}</pre>
         </div>
       )}
     </div>

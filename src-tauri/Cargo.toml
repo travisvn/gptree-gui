@@ -1,5 +1,5 @@
 [package]
-name = "gptree-gui-2"
+name = "gptree-gui"
 version = "0.1.0"
 description = "GPTree GUI - A tool for providing LLM context for coding projects"
 authors = ["you"]
