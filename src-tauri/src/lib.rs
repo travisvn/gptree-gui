@@ -279,6 +279,14 @@ async fn get_configs(path: Option<String>) -> Result<CommandResult<serde_json::V
     })))
 }
 
+#[tauri::command]
+async fn pick_save_path(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let file_path = app.dialog().file().blocking_save_file();
+    let path_str = file_path.map(|p| p.to_string());
+    Ok(path_str)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app_state = AppState {
@@ -304,6 +312,7 @@ pub fn run() {
             get_last_directory,
             set_config_mode,
             get_configs,
+            pick_save_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

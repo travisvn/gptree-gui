@@ -1,4 +1,12 @@
 import React, { useState } from 'react';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
+
+// Add Tauri imports
+let isTauri = false;
+try {
+  // @ts-ignore
+  isTauri = !!window.__TAURI__;
+} catch { }
 
 interface OutputContent {
   combined_content: string;
@@ -31,18 +39,33 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   };
 
   // Download output as file
-  const handleDownload = () => {
-    const blob = new Blob([output.combined_content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'gptree-output.txt';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
+  const handleDownload = async () => {
+    if (isTauri) {
+      try {
+        // Get save path from backend
+        // @ts-ignore
+        const { invoke } = window.__TAURI__.core || window.__TAURI__;
+        const savePath = await invoke('pick_save_path');
+        if (savePath) {
+          await writeTextFile(savePath, output.combined_content);
+        }
+      } catch (err) {
+        // Optionally show an error message
+        // eslint-disable-next-line no-console
+        console.error('Failed to save file:', err);
+      }
+    } else {
+      // Browser fallback
+      const blob = new Blob([output.combined_content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'gptree-output.txt';
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+    }
   };
 
   // Copy with feedback
