@@ -75,6 +75,11 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
 
+  // New state for config override
+  const [globalConfig, setGlobalConfig] = useState<Config | null>(null);
+  const [localConfig, setLocalConfig] = useState<Config | null>(null);
+  const [configMode, setConfigMode] = useState<'global' | 'local'>('global');
+
   // Check for last used directory
   const checkLastDirectory = async () => {
     try {
@@ -123,7 +128,23 @@ function App() {
     }
   };
 
-  // Load directory structure
+  // Helper to fetch both configs and set state
+  const fetchConfigs = async (dir: string) => {
+    try {
+      const result = await invoke<{ success: boolean; data?: any; error?: string }>("get_configs", { path: dir });
+      if (result.success && result.data) {
+        setGlobalConfig(result.data.global || null);
+        setLocalConfig(result.data.local || null);
+        // Default to global config
+        setConfigMode('global');
+        setConfig(result.data.global || null);
+      }
+    } catch (err) {
+      setError(`Error loading configs: ${err}`);
+    }
+  };
+
+  // Modified loadDirectory to fetch both configs
   const loadDirectory = async (path: string) => {
     try {
       setLoading(true);
@@ -136,9 +157,8 @@ function App() {
 
       if (result.success && result.data) {
         setDirectoryTree(result.data);
-
-        // Also load config
-        await loadConfig();
+        // Fetch both configs
+        await fetchConfigs(path);
       } else if (result.error) {
         setError(result.error);
       }
@@ -146,21 +166,6 @@ function App() {
       setError(`Error loading directory: ${err}`);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Load configuration
-  const loadConfig = async () => {
-    try {
-      const result = await invoke<{ success: boolean; data?: Config; error?: string }>("get_config");
-
-      if (result.success && result.data) {
-        setConfig(result.data);
-      } else if (result.error) {
-        setError(result.error);
-      }
-    } catch (err) {
-      setError(`Error loading configuration: ${err}`);
     }
   };
 
@@ -257,19 +262,19 @@ function App() {
     }
   };
 
-  // Use previous files
-  const handleUsePreviousFiles = () => {
-    if (!config || !config.previous_files.length) {
-      setError("No previous files found");
-      return;
+  // Switch config mode (global/local)
+  const handleConfigModeSwitch = async (mode: 'global' | 'local') => {
+    try {
+      setLoading(true);
+      await invoke("set_config_mode", { mode: mode === 'local' ? 'local' : 'global' });
+      setConfigMode(mode);
+      // Set config to the selected one
+      setConfig(mode === 'local' ? localConfig : globalConfig);
+    } catch (err) {
+      setError(`Error switching config mode: ${err}`);
+    } finally {
+      setLoading(false);
     }
-
-    // Convert relative paths to absolute paths
-    const absolutePaths = config.previous_files.map(
-      file => `${currentDirectory}/${file}`
-    );
-
-    setSelectedFiles(absolutePaths);
   };
 
   // When app loads, check for last directory
@@ -330,9 +335,15 @@ function App() {
             </div>
             <div className="file-actions max-h-min">
               <span>{selectedFiles?.length} files selected</span>
-              {config && config?.previous_files?.length > 0 && (
+              {localConfig && localConfig.previous_files && localConfig.previous_files.length > 0 && (
                 <button
-                  onClick={handleUsePreviousFiles}
+                  onClick={() => {
+                    // Convert relative paths to absolute paths
+                    const absolutePaths = localConfig.previous_files.map(
+                      file => `${currentDirectory}/${file}`
+                    );
+                    setSelectedFiles(absolutePaths);
+                  }}
                   disabled={loading}
                 >
                   Use Previous Selection
@@ -350,11 +361,36 @@ function App() {
         )}
 
         <div className="side-panel flex flex-col gap-2">
+          {/* Config mode toggle UI */}
+          {localConfig && (
+            <div className="config-mode-toggle" style={{ marginBottom: 8 }}>
+              <button
+                onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
+                disabled={loading}
+                style={{ padding: '0.3em 1em', borderRadius: 6, border: '1px solid var(--border-color)', background: configMode === 'local' ? 'var(--primary-bg)' : 'var(--background)', color: configMode === 'local' ? 'var(--primary-text)' : 'var(--text-color)', fontWeight: 600 }}
+              >
+                {configMode === 'global' ? 'Use Local Config for this Project' : 'Use Global Config'}
+              </button>
+              <span style={{ marginLeft: 12, fontSize: 13, color: 'var(--text-color)' }}>
+                <strong>Active config:</strong> {configMode === 'local' ? 'Local' : 'Global'}
+              </span>
+            </div>
+          )}
+
           {config && (
             <ConfigPanel
               config={config}
-              onConfigUpdate={updateConfig}
-              disabled={loading}
+              onConfigUpdate={async (newConfig) => {
+                if (!currentDirectory || !directoryTree) {
+                  setError("Please select a directory before changing configuration.");
+                  return;
+                }
+                await updateConfig(newConfig);
+                // Also update the correct config in state
+                if (configMode === 'local') setLocalConfig(newConfig);
+                else setGlobalConfig(newConfig);
+              }}
+              disabled={loading || !currentDirectory || !directoryTree}
             />
           )}
 

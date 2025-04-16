@@ -13,10 +13,18 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_opener::OpenerExt;
 // use tauri_plugin_clipboard_manager::ClipboardExt;
 
+// Add ConfigMode enum
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+enum ConfigMode {
+    Global,
+    LocalOverride,
+}
+
 // Store the app state
 struct AppState {
     current_config: std::sync::Mutex<Config>,
     current_dir: std::sync::Mutex<PathBuf>,
+    config_mode: std::sync::Mutex<ConfigMode>,
 }
 
 // Command return types
@@ -128,9 +136,16 @@ async fn load_directory(
 // Command to get the current configuration
 #[tauri::command]
 async fn get_config(state: tauri::State<'_, AppState>) -> Result<CommandResult<Config>, String> {
-    Ok(CommandResult::success(
-        state.current_config.lock().unwrap().clone(),
-    ))
+    let config_mode = state.config_mode.lock().unwrap();
+    let current_dir = state.current_dir.lock().unwrap().clone();
+    let config = match *config_mode {
+        ConfigMode::LocalOverride => {
+            let local = config::load_or_create_project_config(&current_dir);
+            local.unwrap_or_else(|_| config::load_or_create_global_config().unwrap_or_default())
+        }
+        ConfigMode::Global => config::load_or_create_global_config().unwrap_or_default(),
+    };
+    Ok(CommandResult::success(config))
 }
 
 // Command to update the configuration
@@ -139,14 +154,20 @@ async fn update_config(
     config: Config,
     state: tauri::State<'_, AppState>,
 ) -> Result<CommandResult<bool>, String> {
-    let mut current_config = state.current_config.lock().unwrap();
-    *current_config = config.clone();
-
-    // Save to project config
+    let config_mode = state.config_mode.lock().unwrap();
     let current_dir = state.current_dir.lock().unwrap().clone();
-    let config_path = current_dir.join(".gptree_config");
-
-    match config::save_config(&config_path, &config, false) {
+    let result = match *config_mode {
+        ConfigMode::LocalOverride => {
+            let config_path = current_dir.join(".gptree_config");
+            config::save_config(&config_path, &config, false)
+        }
+        ConfigMode::Global => {
+            let home_dir = dirs::home_dir().ok_or("No home dir")?;
+            let config_path = home_dir.join(".gptreerc");
+            config::save_config(&config_path, &config, true)
+        }
+    };
+    match result {
         Ok(_) => Ok(CommandResult::success(true)),
         Err(e) => Ok(CommandResult::error(format!(
             "Failed to save config: {}",
@@ -227,11 +248,43 @@ async fn get_last_directory() -> Result<CommandResult<Option<String>>, String> {
     }
 }
 
+// New command: set_config_mode
+#[tauri::command]
+async fn set_config_mode(
+    mode: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<CommandResult<bool>, String> {
+    let mut config_mode = state.config_mode.lock().unwrap();
+    *config_mode = match mode.as_str() {
+        "local" => ConfigMode::LocalOverride,
+        _ => ConfigMode::Global,
+    };
+    Ok(CommandResult::success(true))
+}
+
+// New command: get_configs
+#[tauri::command]
+async fn get_configs(path: Option<String>) -> Result<CommandResult<serde_json::Value>, String> {
+    use serde_json::json;
+    let global = config::load_or_create_global_config().ok();
+    let local = if let Some(path) = path {
+        let p = Path::new(&path);
+        config::load_or_create_project_config(p).ok()
+    } else {
+        None
+    };
+    Ok(CommandResult::success(json!({
+        "global": global,
+        "local": local,
+    })))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app_state = AppState {
         current_config: std::sync::Mutex::new(Config::default()),
         current_dir: std::sync::Mutex::new(PathBuf::from(".")),
+        config_mode: std::sync::Mutex::new(ConfigMode::Global),
     };
 
     tauri::Builder::default()
@@ -249,6 +302,8 @@ pub fn run() {
             copy_to_clipboard,
             open_output_file,
             get_last_directory,
+            set_config_mode,
+            get_configs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
