@@ -369,12 +369,14 @@ function App() {
         </div>
       </header>
 
-      <div className="relative h-8">
-        {(error || transientSuccess) && (
-          <div className={`error-message ${transientSuccess ? "success" : ""}`}>
-            {error || transientSuccess}
-          </div>
-        )}
+      <div className="relative">
+        <div className="absolute top-0 left-0 right-0 h-8 w-full z-50">
+          {(error || transientSuccess) && (
+            <div className={`error-message ${transientSuccess ? "success" : ""}`}>
+              {error || transientSuccess}
+            </div>
+          )}
+        </div>
       </div>
 
       {loading && <div className="absolute inset-0 bg-black/20 z-40 flex items-center justify-center"><p className="text-white text-lg">Loading...</p></div>}
@@ -475,7 +477,7 @@ function App() {
           )}
 
           {!output && config && (
-            <div className="flex-grow flex items-center justify-center text-center p-4 output-panel border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] overflow-hidden">
+            <div className="flex-grow flex items-center justify-center text-center p-4 output-panel border rounded-lg shadow-sm bg-light-bg border-border overflow-hidden">
               <p>Select files and click "Generate Output" to see results here.</p>
             </div>
           )}
