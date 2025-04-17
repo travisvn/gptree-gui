@@ -1,3 +1,4 @@
+import { File, Folder, FolderOpen } from '@phosphor-icons/react';
 import React, { useState, useEffect } from 'react';
 
 interface DirectoryItem {
@@ -102,7 +103,8 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
     return (
       <div
         key={item.path}
-        className={`tree-item${isSelected && !isFolder ? ' selected' : ''}`}
+        className=''
+        // className={`tree-item${isSelected && !isFolder ? ' selected' : ''}`}
         style={{
           background: isSelected && !isFolder ? 'var(--primary-color)' : 'none',
           color: isSelected && !isFolder ? 'white' : 'inherit',
@@ -113,7 +115,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
         }}
       >
         <div
-          className="tree-item-content"
+          className="tree-item-content group"
           style={{ cursor: !isFolder ? 'pointer' : 'default', display: 'flex', alignItems: 'center' }}
           onClick={() => {
             if (!isFolder) toggleFileSelection(item.path);
@@ -122,14 +124,17 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
           {isFolder ? (
             <>
               <span
-                className={`folder-icon ${isExpanded ? 'expanded' : ''}`}
+                className={`folder-icon ${isExpanded ? 'expanded' : ''} mr-4`}
                 onClick={e => { e.stopPropagation(); toggleFolder(item.path); }}
-                style={{ marginRight: 6 }}
               >
-                {isExpanded ? '📂' : '📁'}
+                {isExpanded ? (
+                  <FolderOpen size={24} weight="duotone" className="text-inherit group-hover:text-white" />
+                ) : (
+                  <Folder size={24} weight="duotone" className="text-inherit group-hover:text-white" />
+                )}
               </span>
               <span
-                className="item-name folder-name"
+                className="item-name folder-name group-hover:text-white"
                 onClick={e => { e.stopPropagation(); toggleFolder(item.path); }}
                 style={{ fontWeight: 600, cursor: 'pointer' }}
               >
@@ -147,8 +152,10 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
                 tabIndex={-1}
                 style={{ pointerEvents: 'none' }}
               />
-              <span style={{ marginRight: 6 }}>📄</span>
-              <span className="item-name file-name">{item.name}</span>
+              <span style={{ marginRight: 6 }}>
+                <File size={24} weight="duotone" className="text-inherit" />
+              </span>
+              <span className="item-name file-name group-hover:text-white">{item.name}</span>
             </>
           )}
         </div>

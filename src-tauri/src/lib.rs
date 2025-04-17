@@ -280,11 +280,54 @@ async fn get_configs(path: Option<String>) -> Result<CommandResult<serde_json::V
 }
 
 #[tauri::command]
-async fn pick_save_path(app: tauri::AppHandle) -> Result<Option<String>, String> {
+async fn pick_save_path(
+    app: tauri::AppHandle,
+    content: String,
+) -> Result<CommandResult<String>, String> {
+    use std::fs;
+    use std::path::PathBuf;
     use tauri_plugin_dialog::DialogExt;
-    let file_path = app.dialog().file().blocking_save_file();
-    let path_str = file_path.map(|p| p.to_string());
-    Ok(path_str)
+
+    println!("Starting pick_save_path function");
+
+    // Add a default text extension filter
+    let file_path = app
+        .dialog()
+        .file()
+        .add_filter("Text Files", &["txt"])
+        .set_file_name("gptree-output.txt")
+        .blocking_save_file();
+
+    println!("File dialog returned: {:?}", file_path);
+
+    match file_path {
+        Some(path) => {
+            let path_str = path.to_string();
+            println!("Path to string: {}", path_str);
+
+            // Try to convert the FilePath to a PathBuf
+            let path_buf = PathBuf::from(path_str.clone());
+            println!("Created PathBuf: {:?}", path_buf);
+
+            // Write content to the selected file
+            match fs::write(&path_buf, content) {
+                Ok(_) => {
+                    println!("File written successfully to {:?}", path_buf);
+                    Ok(CommandResult::success(path_str))
+                }
+                Err(e) => {
+                    println!("Error writing file: {}", e);
+                    Ok(CommandResult::error(format!("Failed to write file: {}", e)))
+                }
+            }
+        }
+        None => {
+            println!("File save operation was cancelled");
+            Ok(CommandResult::error(
+                "File save operation was cancelled".to_string(),
+            ))
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -296,6 +339,7 @@ pub fn run() {
     };
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())

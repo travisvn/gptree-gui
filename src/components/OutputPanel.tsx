@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 
 // Add Tauri imports
 let isTauri = false;
@@ -21,6 +21,13 @@ interface OutputPanelProps {
   disabled: boolean;
 }
 
+// Define the interface for the result from pick_save_path
+interface SaveResult {
+  success: boolean;
+  data?: string;
+  error?: string;
+}
+
 const OutputPanel: React.FC<OutputPanelProps> = ({
   output,
   onCopyToClipboard,
@@ -29,6 +36,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
 }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   // Truncate content for preview
   const getPreviewContent = () => {
@@ -42,17 +50,23 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   const handleDownload = async () => {
     if (isTauri) {
       try {
-        // Get save path from backend
-        // @ts-ignore
-        const { invoke } = window.__TAURI__.core || window.__TAURI__;
-        const savePath = await invoke('pick_save_path');
-        if (savePath) {
-          await writeTextFile(savePath, output.combined_content);
+        setDownloadStatus('saving...');
+        console.log('Invoking pick_save_path with content length:', output.combined_content.length);
+        const result = await invoke<SaveResult>('pick_save_path', { content: output.combined_content });
+
+        if (result.success && result.data) {
+          console.log('File saved successfully to:', result.data);
+          setDownloadStatus('saved!');
+          setTimeout(() => setDownloadStatus(null), 2000);
+        } else if (result.error) {
+          console.error('Error saving file:', result.error);
+          setDownloadStatus('failed: ' + result.error);
+          setTimeout(() => setDownloadStatus(null), 3000);
         }
       } catch (err) {
-        // Optionally show an error message
-        // eslint-disable-next-line no-console
         console.error('Failed to save file:', err);
+        setDownloadStatus('failed');
+        setTimeout(() => setDownloadStatus(null), 3000);
       }
     } else {
       // Browser fallback
@@ -103,9 +117,9 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
       <div className="flex flex-row gap-2 items-center justify-center">
         <button
           onClick={handleDownload}
-          disabled={disabled}
+          disabled={disabled || downloadStatus === 'saving...'}
         >
-          Download
+          {downloadStatus || 'Download'}
         </button>
         <button
           onClick={() => setShowPreview(!showPreview)}
