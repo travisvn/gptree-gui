@@ -11,6 +11,7 @@ import { Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
 import { HEADER_LINK } from './lib/constants';
 import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
+import FadeInOut from './components/FadeInOut';
 
 const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
 
@@ -67,6 +68,16 @@ function App() {
   const clearMessages = () => {
     setError(null);
     setTransientSuccess(null);
+  };
+
+  const sendErrorMessage = (message: string, duration: number = 3000) => {
+    setError(message);
+    return setTimeout(clearMessages, duration);
+  };
+
+  const sendSuccessMessage = (message: string, duration: number = 10000) => {
+    setTransientSuccess(message);
+    return setTimeout(clearMessages, duration);
   };
 
   // Check for last used directory
@@ -218,8 +229,7 @@ function App() {
   // Generate output
   const handleGenerateOutput = async () => {
     if (!selectedFiles.length) {
-      setError("No files selected to generate output.");
-      setTimeout(clearMessages, 3000);
+      sendErrorMessage("No files selected to generate output.");
       return;
     }
 
@@ -254,11 +264,9 @@ function App() {
     try {
       setLoading(true);
       await invoke("copy_to_clipboard", { content: output.combined_content });
-      setTransientSuccess("Copied to clipboard!");
-      setTimeout(clearMessages, 2000);
+      sendSuccessMessage("Copied to clipboard!");
     } catch (err) {
-      setError(`Error copying to clipboard: ${err}`);
-      setTimeout(clearMessages, 3000);
+      sendErrorMessage(`Error copying to clipboard: ${err}`);
     } finally {
       setLoading(false);
     }
@@ -276,8 +284,7 @@ function App() {
     try {
       await invoke("open_output_file", { path: outputPath });
     } catch (err) {
-      setError(`Error opening file '${outputPath}': ${err}`);
-      setTimeout(clearMessages, 3000);
+      sendErrorMessage(`Error opening file '${outputPath}': ${err}`);
     }
   };
 
@@ -292,12 +299,10 @@ function App() {
       const newActiveConfig = mode === 'local' ? (localConfig || globalConfig) : (globalConfig || localConfig);
       setConfig(newActiveConfig);
       if (!newActiveConfig) {
-        setError("Selected config type is not available.");
-        setTimeout(clearMessages, 3000);
+        sendErrorMessage("Selected config type is not available.");
       }
     } catch (err) {
-      setError(`Error switching config mode: ${err}`);
-      setTimeout(clearMessages, 3000);
+      sendErrorMessage(`Error switching config mode: ${err}`);
     } finally {
       setLoading(false);
     }
@@ -371,11 +376,23 @@ function App() {
 
       <div className="relative">
         <div className="absolute top-0 left-0 right-0 h-8 w-full z-50">
-          {(error || transientSuccess) && (
-            <div className={`error-message ${transientSuccess ? "success" : ""}`}>
-              {error || transientSuccess}
-            </div>
-          )}
+          <FadeInOut
+            show={(error || transientSuccess) ? true : false}
+            animation='slide' // or 'fade'
+            durationInMs={2000}
+            durationOutMs={2000}
+            className={cn(
+              // "error-message",
+              ' text-white px-4 py-2',
+              'text-center',
+              // 'transition-opacity duration-2000 ease-in-out',
+              transientSuccess && "bg-success",
+              error && "bg-error",
+              // error || transientSuccess ? "opacity-100" : "opacity-0"
+            )}
+          >
+            {error || transientSuccess}
+          </FadeInOut>
         </div>
       </div>
 
@@ -453,8 +470,7 @@ function App() {
               config={config}
               onConfigUpdate={async (newConfig) => {
                 if (!currentDirectory) {
-                  setError("Please select a directory before changing configuration.");
-                  setTimeout(clearMessages, 3000);
+                  sendErrorMessage("Please select a directory before changing configuration.");
                   return;
                 }
                 await updateConfig(newConfig);

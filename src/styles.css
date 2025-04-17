@@ -26,4 +26,53 @@
   --color-scrollbar-thumb: var(--scrollbar-thumb);
   --color-scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
   --color-secondary: var(--secondary-color);
+
+  --animate-fade-in-scale: fade-in-scale 0.3s ease-out forwards;
+  --animate-fade-out-scale: fade-out-scale 0.3s ease-in forwards;
+  --animate-slide-fade-in: slide-fade-in 0.3s ease-out forwards;
+  --animate-slide-fade-out: slide-fade-out 0.3s ease-in forwards;
+
+  @keyframes fade-in-scale {
+    0% {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes fade-out-scale {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  @keyframes slide-fade-in {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-fade-out {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+  }
 }
