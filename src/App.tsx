@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
+import React, { useState, useEffect, createContext, useContext, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 // import "./styles.css";
 import DirectoryTree from "./components/DirectoryTree";
@@ -11,7 +11,7 @@ import { Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
 import { HEADER_LINK } from './lib/constants';
 import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
-import FadeInOut from './components/FadeInOut';
+import { motion, AnimatePresence } from 'motion/react';
 
 const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
 
@@ -64,6 +64,11 @@ function App() {
 
   const [pendingClipboardCopy, setPendingClipboardCopy] = useState(false);
 
+  // State and ref for debounced loading indicator
+  const [showLoadingIndicator, setShowLoadingIndicator] = useState<boolean>(false);
+  const loadingTimerRef = useRef<number | null>(null); // Use number for browser setTimeout ID
+  const LOADING_DELAY = 300; // milliseconds
+
   // Clear error/success messages
   const clearMessages = () => {
     setError(null);
@@ -75,15 +80,30 @@ function App() {
     return setTimeout(clearMessages, duration);
   };
 
-  const sendSuccessMessage = (message: string, duration: number = 10000) => {
+  const sendSuccessMessage = (message: string, duration: number = 3000) => {
     setTransientSuccess(message);
     return setTimeout(clearMessages, duration);
+  };
+
+  // Debounced loading indicator logic
+  const startLoading = () => {
+    setLoading(true);
+    clearTimeout(loadingTimerRef.current!); // Clear any existing timer
+    loadingTimerRef.current = setTimeout(() => {
+      setShowLoadingIndicator(true);
+    }, LOADING_DELAY);
+  };
+
+  const stopLoading = () => {
+    clearTimeout(loadingTimerRef.current!);
+    setLoading(false);
+    setShowLoadingIndicator(false);
   };
 
   // Check for last used directory
   const checkLastDirectory = async () => {
     try {
-      setLoading(true);
+      startLoading();
       clearMessages();
 
       const result = await invoke<{ success: boolean; data?: string | null; error?: string }>(
@@ -105,14 +125,14 @@ function App() {
       setError(`Error checking last directory: ${err}`);
       return false;
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
   // Select a directory
   const handleSelectDirectory = async () => {
     try {
-      setLoading(true);
+      startLoading();
       clearMessages();
 
       const result = await invoke<{ success: boolean; data?: string; error?: string }>("select_directory");
@@ -126,7 +146,7 @@ function App() {
     } catch (err) {
       setError(`Error selecting directory: ${err}`);
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
@@ -158,7 +178,7 @@ function App() {
   // Modified loadDirectory to fetch both configs
   const loadDirectory = async (path: string) => {
     try {
-      setLoading(true);
+      startLoading();
       clearMessages();
 
       // First, load the directory tree structure
@@ -185,14 +205,14 @@ function App() {
       setLocalConfig(null);
       setConfig(null);
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
   // Update configuration
   const updateConfig = async (newConfig: Config) => {
     try {
-      setLoading(true);
+      startLoading();
       clearMessages();
 
       const result = await invoke<{ success: boolean; error?: string | AppError }>(
@@ -216,7 +236,7 @@ function App() {
     } catch (err) {
       setError(`Error updating configuration: ${err}`);
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
@@ -234,7 +254,7 @@ function App() {
     }
 
     try {
-      setLoading(true);
+      startLoading();
       clearMessages();
 
       const result = await invoke<{ success: boolean; data?: OutputContent; error?: string }>(
@@ -253,7 +273,7 @@ function App() {
     } catch (err) {
       setError(`Error generating output: ${err}`);
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
@@ -262,13 +282,10 @@ function App() {
     if (!output) return;
 
     try {
-      setLoading(true);
       await invoke("copy_to_clipboard", { content: output.combined_content });
       sendSuccessMessage("Copied to clipboard!");
     } catch (err) {
       sendErrorMessage(`Error copying to clipboard: ${err}`);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -291,7 +308,7 @@ function App() {
   // Switch config mode (global/local)
   const handleConfigModeSwitch = async (mode: 'global' | 'local') => {
     try {
-      setLoading(true);
+      startLoading();
       clearMessages();
       await invoke("set_config_mode", { mode: mode === 'local' ? 'local' : 'global' });
       setConfigMode(mode);
@@ -304,7 +321,7 @@ function App() {
     } catch (err) {
       sendErrorMessage(`Error switching config mode: ${err}`);
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
@@ -335,6 +352,13 @@ function App() {
       setPendingClipboardCopy(false);
     }
   }, [output, pendingClipboardCopy]);
+
+  // Clear loading timer on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(loadingTimerRef.current!);
+    };
+  }, []); // Run only once on mount
 
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-background text-text">
@@ -376,27 +400,50 @@ function App() {
 
       <div className="relative">
         <div className="absolute top-0 left-0 right-0 h-8 w-full z-50">
-          <FadeInOut
-            show={(error || transientSuccess) ? true : false}
-            animation='slide' // or 'fade'
-            durationInMs={2000}
-            durationOutMs={2000}
-            className={cn(
-              // "error-message",
-              ' text-white px-4 py-2',
-              'text-center',
-              // 'transition-opacity duration-2000 ease-in-out',
-              transientSuccess && "bg-success",
-              error && "bg-error",
-              // error || transientSuccess ? "opacity-100" : "opacity-0"
+          <AnimatePresence>
+            {(error || transientSuccess) && (
+              <motion.div
+                // key={error ? 'error' : 'success'}
+                key={'error-or-success'}
+                initial={{
+                  // height: 0,
+                  scaleY: 0.8,
+                  opacity: 0
+                }}
+                animate={{
+                  // height: 'auto',
+                  scaleY: 1,
+                  opacity: 1
+                }}
+                exit={{
+                  // height: 0,
+                  scaleY: 0.8,
+                  opacity: 0
+                }}
+                // transition={{
+                //   ease: 'easeInOut',
+                //   duration: 0.3
+                // }}
+                transition={{
+                  duration: 0.4,
+                  scale: { type: "spring", visualDuration: 0.4, bounce: 0.5 },
+                }}
+                style={{ overflow: 'visible', originY: 0 }}
+                className={cn(
+                  'text-white px-4 py-2',
+                  'text-center',
+                  transientSuccess && 'bg-success',
+                  error && 'bg-error',
+                )}
+              >
+                {error || transientSuccess}
+              </motion.div>
             )}
-          >
-            {error || transientSuccess}
-          </FadeInOut>
+          </AnimatePresence>
         </div>
       </div>
 
-      {loading && <div className="absolute inset-0 bg-black/20 z-40 flex items-center justify-center"><p className="text-white text-lg">Loading...</p></div>}
+      {showLoadingIndicator && <div className="absolute inset-0 bg-black/20 z-40 flex items-center justify-center"><p className="text-white text-lg">Loading...</p></div>}
 
       <div className="flex flex-row flex-grow gap-4 p-4 overflow-hidden">
         {directoryTree ? (

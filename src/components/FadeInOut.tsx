@@ -39,11 +39,11 @@ export default function FadeInOut({
   const animationClass =
     animation === 'slide'
       ? isAnimatingOut
-        ? 'animate-slide-fade-out'
-        : 'animate-slide-fade-in'
+        ? 'animate-(--animate-slide-fade-out)'
+        : 'animate-(--animate-slide-fade-in)'
       : isAnimatingOut
-        ? 'animate-fade-out-scale'
-        : 'animate-fade-in-scale'
+        ? 'animate-(--animate-fade-out-scale)'
+        : 'animate-(--animate-fade-in-scale)'
 
   return (
     <div className={`${animationClass} ${className}`}>
