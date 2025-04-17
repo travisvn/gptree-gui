@@ -1,6 +1,24 @@
 import { File, Folder, FolderOpen, CheckSquare, Square } from '@phosphor-icons/react';
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx'; // Helper for conditional classes
+import {
+  DiJavascript1,
+  DiReact,
+  DiHtml5,
+  DiCss3,
+  DiPython,
+  DiRust,
+  DiJava,
+  DiTerminal, // For shell scripts
+  DiMarkdown,
+  DiGit, // For .git related files like .gitignore
+  DiNpm, // For package.json, package-lock.json
+  DiDocker,
+} from 'react-icons/di'; // Devicons
+import { BsFiletypeTsx, BsFiletypeJsx, BsFiletypeYml, BsFileText } from 'react-icons/bs'; // Bootstrap Icons for specific types
+import { VscTerminalCmd, VscTerminalBash, VscTerminalPowershell, VscJson } from 'react-icons/vsc'; // VSCode Icons for terminals & JSON
+import { SiTypescript } from 'react-icons/si'; // Simple Icons for TypeScript
+import { GoFile } from 'react-icons/go'; // Github Octicons for default
 
 interface DirectoryItem {
   name: string;
@@ -113,6 +131,42 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
     setExpandedFolders(new Set());
   };
 
+  // Helper to get file extension
+  const getFileExtension = (filename: string): string => {
+    return filename.slice(((filename.lastIndexOf(".") - 1) >>> 0) + 2).toLowerCase();
+  };
+
+  // Map extensions to icons
+  const getIconForFile = (filename: string) => {
+    const extension = getFileExtension(filename);
+    switch (extension) {
+      case 'js': return <DiJavascript1 className="text-yellow-500" />;
+      case 'jsx': return <BsFiletypeJsx className="text-blue-400" />;
+      case 'ts': return <SiTypescript className="text-blue-600" />;
+      case 'tsx': return <BsFiletypeTsx className="text-blue-400" />; // Often styled like React
+      case 'html': return <DiHtml5 className="text-orange-600" />;
+      case 'css': return <DiCss3 className="text-blue-500" />;
+      case 'py': return <DiPython className="text-blue-400" />; // Often associated with blue/yellow
+      case 'rs': return <DiRust className="text-orange-700" />;
+      case 'java': return <DiJava className="text-red-600" />; // Often red/blue
+      case 'json': // Handle package.json specifically
+        if (filename === 'package.json' || filename === 'package-lock.json') {
+          return <DiNpm className="text-red-600" />;
+        }
+        return <VscJson className="text-yellow-600" />;
+      case 'md': return <DiMarkdown className="text-gray-400" />;
+      case 'sh': return <VscTerminalBash className="text-green-500" />;
+      case 'bat': return <VscTerminalPowershell className="text-blue-500" />;
+      case 'cmd': return <VscTerminalCmd className="text-gray-400" />;
+      case 'yaml':
+      case 'yml': return <BsFiletypeYml className="text-gray-400" />;
+      case 'gitignore': return <DiGit className="text-red-500" />;
+      case 'dockerfile': return <DiDocker className="text-blue-500" />;
+      case 'txt': return <BsFileText className="text-gray-400" />;
+      default: return <GoFile className="text-gray-400" />; // Default icon
+    }
+  };
+
   // Recursive rendering of tree items
   const renderTreeItem = (item: DirectoryItem, level: number = 0) => {
     const isExpanded = expandedFolders.has(item.path);
@@ -155,9 +209,14 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
           {!isFolder && (
             <span className={clsx(
               "mr-1.5 text-text", // Spacing
-              'cursor-pointer opacity-60 group-hover:opacity-80',
+              'cursor-pointer opacity-60 group-hover:opacity-80 flex items-center gap-1', // Added flex/gap
               // isFileSelected ? "dark:text-white" : "text-text opacity-60 group-hover:opacity-100 group-hover:text-primary" // Explicit color for selected/unselected/hover
             )}>
+              {/* File Type Icon */}
+              <span className="inline-block w-5 h-5 flex-shrink-0"> {/* Container for icon size */}
+                {getIconForFile(item.name)}
+              </span>
+              {/* Selection Checkbox */}
               {isSelected ? (
                 <CheckSquare size={20} weight="duotone" />
               ) : (
@@ -188,7 +247,6 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
           <div className=" pl-2 ml-[calc(0.25rem+1.25rem*var(--level))] border-l border-border">
             {/* NOTE: The above might need adjustment if level isn't passed correctly or CSS var isn't supported */}
             {/* Simpler alternative: fixed margin/padding on children div */}
-            {/* <div className="tree-children pl-2 ml-5 border-l border-gray-200 dark:border-gray-700"> */}
             {item.children.map(child => renderTreeItem(child, level + 1))}
           </div>
         )}
