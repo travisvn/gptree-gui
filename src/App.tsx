@@ -7,6 +7,7 @@ import OutputPanel from "./components/OutputPanel";
 import { app } from '@tauri-apps/api';
 import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
+import { Moon, Sun } from '@phosphor-icons/react';
 
 // Types
 interface DirectoryItem {
@@ -79,6 +80,7 @@ function App() {
   const [output, setOutput] = useState<OutputContent | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [transientSuccess, setTransientSuccess] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
 
   // New state for config override
@@ -88,11 +90,17 @@ function App() {
 
   const [pendingClipboardCopy, setPendingClipboardCopy] = useState(false);
 
+  // Clear error/success messages
+  const clearMessages = () => {
+    setError(null);
+    setTransientSuccess(null);
+  };
+
   // Check for last used directory
   const checkLastDirectory = async () => {
     try {
       setLoading(true);
-      setError(null);
+      clearMessages();
 
       const result = await invoke<{ success: boolean; data?: string | null; error?: string }>(
         "get_last_directory"
@@ -105,10 +113,12 @@ function App() {
         return true; // Successfully loaded
       } else if (result.error) {
         console.error("Error loading last directory:", result.error);
+        setError(`Failed to load last directory: ${result.error}`);
       }
       return false; // No last directory or failed to load
     } catch (err) {
       console.error("Error checking last directory:", err);
+      setError(`Error checking last directory: ${err}`);
       return false;
     } finally {
       setLoading(false);
@@ -119,7 +129,7 @@ function App() {
   const handleSelectDirectory = async () => {
     try {
       setLoading(true);
-      setError(null);
+      clearMessages();
 
       const result = await invoke<{ success: boolean; data?: string; error?: string }>("select_directory");
 
@@ -143,12 +153,21 @@ function App() {
       if (result.success && result.data) {
         setGlobalConfig(result.data.global || null);
         setLocalConfig(result.data.local || null);
-        // Default to global config
-        setConfigMode('global');
-        setConfig(result.data.global || null);
+        // Default to global config or local if global doesn't exist
+        const initialMode = result.data.global ? 'global' : 'local';
+        setConfigMode(initialMode);
+        setConfig(initialMode === 'global' ? result.data.global : result.data.local);
+      } else if (result.error) {
+        setError(`Error loading configs: ${result.error}`);
+        setGlobalConfig(null);
+        setLocalConfig(null);
+        setConfig(null);
       }
     } catch (err) {
       setError(`Error loading configs: ${err}`);
+      setGlobalConfig(null);
+      setLocalConfig(null);
+      setConfig(null);
     }
   };
 
@@ -156,7 +175,7 @@ function App() {
   const loadDirectory = async (path: string) => {
     try {
       setLoading(true);
-      setError(null);
+      clearMessages();
 
       // First, load the directory tree structure
       const treeResult = await invoke<{ success: boolean; data?: DirectoryItem; error?: string }>(
@@ -190,6 +209,7 @@ function App() {
   const updateConfig = async (newConfig: Config) => {
     try {
       setLoading(true);
+      clearMessages();
 
       const result = await invoke<{ success: boolean; error?: string | AppError }>(
         "update_config",
@@ -207,7 +227,7 @@ function App() {
       } else if (result.error) {
         // AppError object might be serialized as a string, or could be just a string
         const errorMsg = typeof result.error === 'object' && result.error !== null ? JSON.stringify(result.error) : result.error;
-        setError(errorMsg);
+        setError(`Error updating config: ${errorMsg}`);
       }
     } catch (err) {
       setError(`Error updating configuration: ${err}`);
@@ -219,18 +239,20 @@ function App() {
   // Update selected files from tree
   const handleFileSelection = (files: string[]) => {
     setSelectedFiles(files);
+    clearMessages(); // Clear messages when selection changes
   };
 
   // Generate output
   const handleGenerateOutput = async () => {
     if (!selectedFiles.length) {
-      setError("No files selected");
+      setError("No files selected to generate output.");
+      setTimeout(clearMessages, 3000);
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
+      clearMessages();
 
       const result = await invoke<{ success: boolean; data?: OutputContent; error?: string }>(
         "generate_output",
@@ -258,14 +280,12 @@ function App() {
 
     try {
       setLoading(true);
-
       await invoke("copy_to_clipboard", { content: output.combined_content });
-
-      // Show a temporary success message
-      setError("Copied to clipboard!");
-      setTimeout(() => setError(null), 2000);
+      setTransientSuccess("Copied to clipboard!");
+      setTimeout(clearMessages, 2000);
     } catch (err) {
       setError(`Error copying to clipboard: ${err}`);
+      setTimeout(clearMessages, 3000);
     } finally {
       setLoading(false);
     }
@@ -274,15 +294,17 @@ function App() {
   // Open output file
   const handleOpenOutputFile = async () => {
     if (!config) return;
+    clearMessages();
 
     const outputPath = config.output_file_locally
       ? config.output_file
       : `${currentDirectory}/${config.output_file}`;
 
     try {
-      await invoke("open_output_file", { app: app, path: outputPath });
+      await invoke("open_output_file", { path: outputPath });
     } catch (err) {
-      setError(`Error opening file: ${err}`);
+      setError(`Error opening file '${outputPath}': ${err}`);
+      setTimeout(clearMessages, 3000);
     }
   };
 
@@ -290,12 +312,19 @@ function App() {
   const handleConfigModeSwitch = async (mode: 'global' | 'local') => {
     try {
       setLoading(true);
+      clearMessages();
       await invoke("set_config_mode", { mode: mode === 'local' ? 'local' : 'global' });
       setConfigMode(mode);
-      // Set config to the selected one
-      setConfig(mode === 'local' ? localConfig : globalConfig);
+      // Set config to the selected one, fall back if one is null
+      const newActiveConfig = mode === 'local' ? (localConfig || globalConfig) : (globalConfig || localConfig);
+      setConfig(newActiveConfig);
+      if (!newActiveConfig) {
+        setError("Selected config type is not available.");
+        setTimeout(clearMessages, 3000);
+      }
     } catch (err) {
       setError(`Error switching config mode: ${err}`);
+      setTimeout(clearMessages, 3000);
     } finally {
       setLoading(false);
     }
@@ -304,19 +333,20 @@ function App() {
   // When app loads, check for last directory
   useEffect(() => {
     const init = async () => {
-      // Try to load the last directory first
       const lastDirLoaded = await checkLastDirectory();
-
-      // If no last directory or failed to load, ask for new one
+      // Only prompt if no last directory AND no current directory set
       if (!lastDirLoaded && !currentDirectory) {
+        // Option 1: Prompt user immediately (can be intrusive)
         // handleSelectDirectory();
-        setCurrentDirectory('/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1');
-        await loadDirectory('/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1');
+
+        // Option 2: Show a message or placeholder state indicating no directory selected
+        console.log("No last directory found, waiting for user selection.");
+        // Optionally set a state here to show a "Select a Directory" message centrally
       }
     };
-
     init();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Effect: perform clipboard copy after output is set
   useEffect(() => {
@@ -327,87 +357,107 @@ function App() {
   }, [output, pendingClipboardCopy]);
 
   return (
-    <div className="h-screen flex flex-col max-w-[100vw] mr-0 min-h-full">
-      <header className="app-header flex-shrink-0">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.7em' }}>
-          <GptreeLogo className="h-9 w-auto text-indigo-600 dark:text-indigo-400" />
-          <h1 className="text-2xl font-bold" style={{ margin: 0 }}>GPTree</h1>
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-[--background] text-[--text-color]">
+      <header className="flex items-center justify-between flex-shrink-0 px-4 py-2 shadow-md bg-[--header-bg] text-[--header-text]">
+        <div className="flex items-center gap-3">
+          <GptreeLogo className="h-8 w-auto" />
+          <h1 className="text-xl font-bold m-0">GPTree</h1>
         </div>
-        <div className="header-controls">
-          <button onClick={toggleTheme} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`} style={{ fontSize: "1.3em", background: "none", border: "none", marginRight: "0.5em" }}>
-            {theme === "light" ? "🌙" : "☀️"}
+
+        {currentDirectory && (
+          <div className="flex-1 text-center text-sm truncate px-4"
+            data-tooltip-id="app-tooltip"
+            data-tooltip-content={currentDirectory}>
+            <span className="font-medium mr-1">Current:</span> {currentDirectory}
+          </div>
+        )}
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleTheme}
+            title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+            className="p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10"
+          >
+            {theme === "light" ? <Moon weight="fill" /> : <Sun weight="fill" />}
           </button>
           <button
             onClick={handleSelectDirectory}
             disabled={loading}
+            className="text-sm px-3 py-1.5"
           >
             Select Directory
           </button>
-          {currentDirectory && (
-            <span className="current-dir">
-              <strong>Current:</strong> {currentDirectory}
-            </span>
-          )}
         </div>
       </header>
 
-      {error && (
-        <div className={`error-message ${error === "Copied to clipboard!" ? "success" : ""} absolute top-0 left-0 w-full z-50`}>
-          {error}
-        </div>
-      )}
+      <div className="relative h-8">
+        {(error || transientSuccess) && (
+          <div className={`error-message ${transientSuccess ? "success" : ""}`}>
+            {error || transientSuccess}
+          </div>
+        )}
+      </div>
 
-      <div className="flex flex-row gap-2 m-2 pr-4 flex-grow overflow-hidden">
-        {directoryTree && (
-          <div className="flex flex-col p-2 directory-panel overflow-hidden">
-            <h2 className=" text-2xl font-bold flex-shrink-0">Project Files</h2>
-            <div className="flex flex-col gap-2 overflow-y-auto flex-grow">
+      {loading && <div className="absolute inset-0 bg-black/20 z-40 flex items-center justify-center"><p className="text-white text-lg">Loading...</p></div>}
+
+      <div className="flex flex-row flex-grow gap-4 p-4 overflow-hidden">
+        {directoryTree ? (
+          <div className="flex flex-col p-3 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] w-1/3 min-w-[300px] max-w-[50vw] overflow-hidden">
+            <h2 className="text-lg font-semibold mb-3 flex-shrink-0">Project Files</h2>
+            <div className="flex-grow overflow-hidden mb-3">
               <DirectoryTree
                 tree={directoryTree}
                 onFileSelection={handleFileSelection}
                 selectedFiles={selectedFiles}
               />
             </div>
-            <div className="file-actions max-h-min flex-shrink-0">
-              <span>{selectedFiles?.length} files selected</span>
-              {localConfig && localConfig.previous_files && localConfig.previous_files.length > 0 && (
-                <button
-                  onClick={() => {
-                    // Convert relative paths to absolute paths
-                    const absolutePaths = localConfig.previous_files.map(
-                      file => `${currentDirectory}/${file}`
-                    );
-                    setSelectedFiles(absolutePaths);
-                  }}
-                  disabled={loading}
-                >
-                  Use Previous Selection
-                </button>
-              )}
+            <div className="flex flex-col gap-2 pt-3 border-t border-[--border-color] flex-shrink-0">
+              <div className="flex justify-between items-center text-sm text-[--light-text]">
+                <span>{selectedFiles?.length ?? 0} files selected</span>
+                {config && config.store_files_chosen && localConfig && localConfig.previous_files && localConfig.previous_files.length > 0 && (
+                  <button
+                    onClick={() => {
+                      const absolutePaths = localConfig.previous_files.map(
+                        file => `${currentDirectory}/${file}`
+                      );
+                      setSelectedFiles(absolutePaths);
+                    }}
+                    disabled={loading}
+                    className="text-xs px-2 py-1"
+                  >
+                    Use Previous Selection
+                  </button>
+                )}
+              </div>
               <button
                 onClick={handleGenerateOutput}
                 disabled={loading || selectedFiles.length === 0}
-                className="primary-button"
+                className="primary-button w-full"
               >
                 Generate Output
               </button>
             </div>
           </div>
+        ) : (
+          <div className="flex items-center justify-center w-1/3 text-[--light-text]">
+            {!loading && !currentDirectory && <p>Select a directory to begin.</p>}
+          </div>
         )}
 
-        <div className="side-panel flex flex-col gap-2 overflow-hidden">
-          {/* Config mode toggle UI */}
-          {localConfig && (
-            <div className="config-mode-toggle flex-shrink-0" style={{ marginBottom: 8 }}>
+        <div className="flex flex-col gap-4 w-2/3 overflow-hidden">
+          {currentDirectory && (globalConfig || localConfig) && (
+            <div className="config-mode-toggle flex items-center gap-3 flex-shrink-0">
               <button
                 onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
-                disabled={loading}
-                style={{ padding: '0.3em 1em', borderRadius: 6, border: '1px solid var(--border-color)', background: configMode === 'local' ? 'var(--primary-bg)' : 'var(--background)', color: configMode === 'local' ? 'var(--primary-text)' : 'var(--text-color)', fontWeight: 600 }}
+                disabled={loading || (!globalConfig && configMode === 'global') || (!localConfig && configMode === 'local')}
+                className={`config-mode-button ${configMode === 'local' ? (localConfig ? 'active' : 'inactive') : (globalConfig ? 'active' : 'inactive')}`}
+                title={configMode === 'global' ? 'Switch to Local Project Config' : 'Switch to Global Config'}
               >
-                {configMode === 'global' ? 'Use Local Config for this Project' : 'Use Global Config'}
+                {configMode === 'global' ? (localConfig ? 'Use Local' : 'Local N/A') : (globalConfig ? 'Use Global' : 'Global N/A')} Config
               </button>
-              <span style={{ marginLeft: 12, fontSize: 13, color: 'var(--text-color)' }}>
-                <strong>Active config:</strong> {configMode === 'local' ? 'Local' : 'Global'}
+              <span className="text-sm text-[--light-text]">
+                <strong>Active:</strong> {configMode === 'local' ? 'Local Project' : 'Global'}
+                {!config && ' (No config loaded)'}
               </span>
             </div>
           )}
@@ -416,13 +466,15 @@ function App() {
             <ConfigPanel
               config={config}
               onConfigUpdate={async (newConfig) => {
-                if (!currentDirectory || !directoryTree) {
+                if (!currentDirectory) {
                   setError("Please select a directory before changing configuration.");
+                  setTimeout(clearMessages, 3000);
                   return;
                 }
                 await updateConfig(newConfig);
               }}
               disabled={loading || !currentDirectory}
+              className="flex-shrink-0"
             />
           )}
 
@@ -434,13 +486,19 @@ function App() {
               disabled={loading}
               outputFileLocally={config.output_file_locally}
               outputFileName={config.output_file}
-              className="flex-grow flex flex-col"
+              className="flex-grow flex flex-col min-h-0"
             />
+          )}
+
+          {!output && config && (
+            <div className="flex-grow flex items-center justify-center text-center p-4 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] text-[--light-text]">
+              <p>Select files and click "Generate Output" to see results here.</p>
+            </div>
           )}
         </div>
       </div>
 
-      <Tooltip id="app-tooltip" />
+      <Tooltip id="app-tooltip" className="react-tooltip" />
     </div>
   );
 }

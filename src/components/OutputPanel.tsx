@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import { Copy, FileText, DownloadSimple, Eye, EyeSlash } from '@phosphor-icons/react';
 
 interface OutputContent {
   combined_content: string;
@@ -40,18 +41,22 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   // Determine if the button should be disabled and why
   const isOpenDisabled = disabled || !outputFileLocally || !outputFileName;
   let openButtonTooltip = "";
-  if (isOpenDisabled && !disabled) { // Only show config reason if not globally disabled
+  if (isOpenDisabled && !disabled) {
     if (!outputFileLocally) {
-      openButtonTooltip = "Output is not configured to be saved locally.";
+      openButtonTooltip = "Output file saving is disabled in config.";
     } else if (!outputFileName) {
-      openButtonTooltip = "No output file name is configured.";
+      openButtonTooltip = "Output file name is not configured.";
     }
   }
 
   // Truncate content for preview
   const getPreviewContent = () => {
-    if (output.combined_content.length > 1000) {
-      return output.combined_content.substring(0, 1000) + '...\n\n[Content truncated for preview]';
+    const maxPreviewLength = 2000; // Increased preview length
+    if (output.combined_content.length > maxPreviewLength) {
+      return (
+        output.combined_content.substring(0, maxPreviewLength) +
+        '\n\n... [Content truncated for preview] ...'
+      );
     }
     return output.combined_content;
   };
@@ -64,11 +69,9 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     if (isTauri()) {
       try {
         setDownloadStatus('saving...');
-        console.log('Invoking pick_save_path with content length:', output.combined_content.length);
         const result = await invoke<SaveResult>('pick_save_path', { content: output.combined_content });
 
         if (result.success && result.data) {
-          console.log('File saved successfully to:', result.data);
           setDownloadStatus('saved!');
           setTimeout(() => setDownloadStatus(null), 2000);
         } else if (result.error) {
@@ -103,55 +106,61 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   };
 
   return (
-    <div className={`output-panel flex flex-col p-3 overflow-hidden ${className}`}>
-      <div className="output-header flex-shrink-0">
-        <h3>Output</h3>
-        <div className="output-stats">
+    <div className={`output-panel flex flex-col p-3 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] overflow-hidden ${className}`}>
+      <div className="output-header flex justify-between items-center mb-3 flex-shrink-0 border-b border-[--border-color] pb-2">
+        <h3 className="text-base font-semibold m-0">Output</h3>
+        <div className="output-stats flex gap-3 text-sm text-[--light-text]">
           <span><strong>Files:</strong> {output.selected_files.length}</span>
           <span><strong>Tokens:</strong> ~{output.estimated_tokens.toLocaleString()}</span>
         </div>
       </div>
 
-      <div className="flex flex-row gap-2 items-center justify-center mb-2 flex-shrink-0">
+      <div className="flex flex-wrap gap-2 mb-3 flex-shrink-0 justify-center">
         <button
           onClick={handleCopy}
           disabled={disabled}
-          className="primary-button"
+          className="primary-button flex items-center gap-1.5"
         >
-          {copied ? 'Copied!' : 'Copy to Clipboard'}
+          <Copy size={16} /> {copied ? 'Copied!' : 'Copy'}
         </button>
-        {/* Wrap button in span if disabled for tooltip */}
+
         <span
-          data-tooltip-id={isOpenDisabled ? "app-tooltip" : undefined} // Apply tooltip ID only when disabled
-          data-tooltip-content={openButtonTooltip} // Apply tooltip content
+          data-tooltip-id={isOpenDisabled ? "app-tooltip" : undefined}
+          data-tooltip-content={openButtonTooltip}
+          className={isOpenDisabled ? 'cursor-not-allowed' : ''}
         >
           <button
             onClick={onOpenFile}
-            disabled={isOpenDisabled} // Use the calculated disabled state
+            disabled={isOpenDisabled}
+            className="flex items-center gap-1.5 disabled:cursor-not-allowed"
           >
-            Open Output File
+            <FileText size={16} /> Open File
           </button>
         </span>
-      </div>
-      <div className="flex flex-row gap-2 items-center justify-center flex-shrink-0">
+
         <button
           onClick={handleDownload}
-          disabled={disabled || downloadStatus === 'saving...'}
+          disabled={disabled || !!downloadStatus}
+          className="flex items-center gap-1.5"
         >
-          {downloadStatus || 'Download'}
+          <DownloadSimple size={16} /> {downloadStatus || 'Download'}
         </button>
+
         <button
           onClick={() => setShowPreview(!showPreview)}
           disabled={disabled}
+          className="flex items-center gap-1.5"
         >
-          {showPreview ? 'Hide Preview' : 'Show Preview'}
+          {showPreview ? <EyeSlash size={16} /> : <Eye size={16} />} {showPreview ? 'Hide' : 'Show'} Preview
         </button>
       </div>
 
       {showPreview && (
-        <div className="output-preview mt-2 flex-grow overflow-hidden flex flex-col">
-          <h4 className="flex-shrink-0">Content Preview</h4>
-          <pre className="flex-grow overflow-y-auto bg-[--background]">{getPreviewContent()}</pre>
+        <div className="output-preview mt-1 flex-grow overflow-hidden flex flex-col min-h-0">
+          <h4 className="text-sm font-medium text-[--light-text] mb-1 flex-shrink-0">Content Preview</h4>
+          <pre className="flex-grow overflow-y-auto p-2 rounded bg-[--background] text-xs leading-relaxed">
+            {getPreviewContent()}
+          </pre>
         </div>
       )}
     </div>

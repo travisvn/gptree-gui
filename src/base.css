@@ -18,53 +18,48 @@
   --error-color: #ef4444;
   --header-bg: #1e3a8a;
   --header-text: white;
-  --input-color: #1f2937;
-  --input-bg: rgba(255, 255, 255, 0.7);
+  --input-color: var(--text-color);
+  --input-bg: white;
   --scrollbar-bg: #e5e7eb;
   --scrollbar-thumb: #cbd5e1;
   --scrollbar-thumb-hover: #a1a1aa;
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
   font-weight: 400;
-
-  color: #0f0f0f;
-  /* background-color: #f6f6f6; */
-
-  background-color: #1e3a8a;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-
-  /* --spacing: 1rem; */
 }
 .theme-dark {
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
   --text-color: #f3f4f6;
-  --light-text: #a1a1aa;
-  --background: #181a20;
-  --light-bg: #232634;
-  --border-color: #232634;
+  --light-text: #9ca3af;
+  --background: #1f2937;
+  --light-bg: #374151;
+  --border-color: #4b5563;
   --success-color: #10b981;
   --error-color: #ef4444;
-  --header-bg: #232634;
+  --header-bg: #374151;
   --header-text: #f3f4f6;
-  --input-color: #f3f4f6;
-  --input-bg: rgba(30, 41, 59, 0.7);
-  --scrollbar-bg: #232634;
-  --scrollbar-thumb: #35394a;
-  --scrollbar-thumb-hover: #4b5563;
+  --input-color: var(--text-color);
+  --input-bg: #4b5563;
+  --scrollbar-bg: #374151;
+  --scrollbar-thumb: #4b5563;
+  --scrollbar-thumb-hover: #6b7280;
 }
 
 html,
 body,
 .app-container {
-  background-color: var(--background) !important;
-  color: var(--text-color) !important;
-  transition: background 0.3s, color 0.3s;
+  background-color: var(--background);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 html,
@@ -73,7 +68,6 @@ body,
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  /* min-height: 100vh; */
   height: 100%;
 }
 
@@ -254,8 +248,6 @@ button {
 
 * {
   box-sizing: border-box;
-  /* margin: 0; */
-  /* padding: 0; */
 }
 
 body {
@@ -343,7 +335,6 @@ label {
 
 /* Directory Panel */
 .directory-panel {
-  /* flex: 2 1 0; */
   flex: 1;
   flex-direction: row;
   min-width: 220px;
@@ -448,7 +439,6 @@ label {
 }
 
 .config-header {
-  /* padding: 1rem; */
   padding: 0.5rem;
   cursor: pointer;
   display: flex;
@@ -463,7 +453,6 @@ label {
 
 .config-content {
   padding: 1rem;
-  /* max-height: 75vh; */
   overflow-y: auto;
 }
 
@@ -542,6 +531,11 @@ label {
 .config-content::-webkit-scrollbar,
 .output-preview pre::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
+}
+.tree-container::-webkit-scrollbar-track,
+.config-content::-webkit-scrollbar-track,
+.output-preview pre::-webkit-scrollbar-track {
   background: var(--scrollbar-bg);
   border-radius: 8px;
 }
@@ -595,7 +589,6 @@ label {
   }
   .directory-panel,
   .side-panel {
-    /* padding: 0.5rem; */
   }
   .output-panel,
   .config-panel {
