@@ -425,12 +425,14 @@ function App() {
             />
           )}
 
-          {output && (
+          {output && config && (
             <OutputPanel
               output={output}
               onCopyToClipboard={handleCopyToClipboard}
               onOpenFile={handleOpenOutputFile}
               disabled={loading}
+              outputFileLocally={config.output_file_locally}
+              outputFileName={config.output_file}
               className="flex-grow flex flex-col"
             />
           )}

@@ -13,6 +13,8 @@ interface OutputPanelProps {
   onOpenFile: () => void;
   disabled: boolean;
   className?: string;
+  outputFileLocally: boolean;
+  outputFileName: string;
 }
 
 // Define the interface for the result from pick_save_path
@@ -27,7 +29,9 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   onCopyToClipboard,
   onOpenFile,
   disabled,
-  className = ""
+  className = "",
+  outputFileLocally,
+  outputFileName
 }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -107,7 +111,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         </button>
         <button
           onClick={onOpenFile}
-          disabled={disabled}
+          disabled={disabled || !outputFileLocally || !outputFileName}
         >
           Open Output File
         </button>
