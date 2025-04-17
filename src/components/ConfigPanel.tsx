@@ -61,7 +61,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
       </div>
 
       <div
-        className={`config-content overflow-y-auto transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[calc(100vh-20rem)] opacity-100 p-3 pt-0' : 'max-h-0 opacity-0 p-0'
+        className={`config-content overflow-y-auto transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[50vh] opacity-100 p-3 pt-0' : 'max-h-0 opacity-0 p-0'
           }`}
       >
         <div className="config-section">

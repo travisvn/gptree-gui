@@ -326,8 +326,8 @@ function App() {
   }, [output, pendingClipboardCopy]);
 
   return (
-    <div className=" max-h-[100vh] flex flex-col max-w-[100vw] mr-0 min-h-full">
-      <header className="app-header">
+    <div className="h-screen flex flex-col max-w-[100vw] mr-0 min-h-full">
+      <header className="app-header flex-shrink-0">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.7em' }}>
           <GptreeLogo className="h-9 w-auto text-indigo-600 dark:text-indigo-400" />
           <h1 className="text-2xl font-bold" style={{ margin: 0 }}>GPTree</h1>
@@ -351,23 +351,23 @@ function App() {
       </header>
 
       {error && (
-        <div className={`error-message ${error === "Copied to clipboard!" ? "success" : ""} absolute top-0 left-0 w-full`}>
+        <div className={`error-message ${error === "Copied to clipboard!" ? "success" : ""} absolute top-0 left-0 w-full z-50`}>
           {error}
         </div>
       )}
 
-      <div className="flex flex-row gap-2 m-2 pr-4  flex-grow">
+      <div className="flex flex-row gap-2 m-2 pr-4 flex-grow overflow-hidden">
         {directoryTree && (
-          <div className="overflow-y-auto max-h-full max-w-full p-2 min-h-full directory-panel ">
-            <h2 className=" text-2xl font-bold">Project Files</h2>
-            <div className="flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-15rem)] flex-grow h-full">
+          <div className="flex flex-col p-2 directory-panel overflow-hidden">
+            <h2 className=" text-2xl font-bold flex-shrink-0">Project Files</h2>
+            <div className="flex flex-col gap-2 overflow-y-auto flex-grow">
               <DirectoryTree
                 tree={directoryTree}
                 onFileSelection={handleFileSelection}
                 selectedFiles={selectedFiles}
               />
             </div>
-            <div className="file-actions max-h-min">
+            <div className="file-actions max-h-min flex-shrink-0">
               <span>{selectedFiles?.length} files selected</span>
               {localConfig && localConfig.previous_files && localConfig.previous_files.length > 0 && (
                 <button
@@ -394,10 +394,10 @@ function App() {
           </div>
         )}
 
-        <div className="side-panel flex flex-col gap-2">
+        <div className="side-panel flex flex-col gap-2 overflow-hidden">
           {/* Config mode toggle UI */}
           {localConfig && (
-            <div className="config-mode-toggle" style={{ marginBottom: 8 }}>
+            <div className="config-mode-toggle flex-shrink-0" style={{ marginBottom: 8 }}>
               <button
                 onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
                 disabled={loading}
@@ -431,12 +431,11 @@ function App() {
               onCopyToClipboard={handleCopyToClipboard}
               onOpenFile={handleOpenOutputFile}
               disabled={loading}
+              className="flex-grow flex flex-col"
             />
           )}
         </div>
       </div>
-
-      <div className="flex-shrink bg-red-300"></div>
     </div>
   );
 }

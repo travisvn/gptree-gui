@@ -12,6 +12,7 @@ interface OutputPanelProps {
   onCopyToClipboard: () => void;
   onOpenFile: () => void;
   disabled: boolean;
+  className?: string;
 }
 
 // Define the interface for the result from pick_save_path
@@ -25,7 +26,8 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   output,
   onCopyToClipboard,
   onOpenFile,
-  disabled
+  disabled,
+  className = ""
 }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -86,8 +88,8 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   };
 
   return (
-    <div className="output-panel overflow-y-auto max-h-full max-w-full">
-      <div className="output-header">
+    <div className={`output-panel flex flex-col p-3 overflow-hidden ${className}`}>
+      <div className="output-header flex-shrink-0">
         <h3>Output</h3>
         <div className="output-stats">
           <span><strong>Files:</strong> {output.selected_files.length}</span>
@@ -95,7 +97,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-row gap-2 items-center justify-center mb-2">
+      <div className="flex flex-row gap-2 items-center justify-center mb-2 flex-shrink-0">
         <button
           onClick={handleCopy}
           disabled={disabled}
@@ -110,7 +112,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
           Open Output File
         </button>
       </div>
-      <div className="flex flex-row gap-2 items-center justify-center">
+      <div className="flex flex-row gap-2 items-center justify-center flex-shrink-0">
         <button
           onClick={handleDownload}
           disabled={disabled || downloadStatus === 'saving...'}
@@ -126,9 +128,9 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
       </div>
 
       {showPreview && (
-        <div className="output-preview">
-          <h4>Content Preview</h4>
-          <pre className="max-h-[calc(100svh-25rem)] overflow-y-auto">{getPreviewContent()}</pre>
+        <div className="output-preview mt-2 flex-grow overflow-hidden flex flex-col">
+          <h4 className="flex-shrink-0">Content Preview</h4>
+          <pre className="flex-grow overflow-y-auto bg-[--background]">{getPreviewContent()}</pre>
         </div>
       )}
     </div>
