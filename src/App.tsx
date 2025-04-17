@@ -6,6 +6,7 @@ import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
 import { app } from '@tauri-apps/api';
 import GptreeLogo from './assets/gptree_logo.svg?react';
+import { Tooltip } from 'react-tooltip';
 
 // Types
 interface DirectoryItem {
@@ -438,6 +439,8 @@ function App() {
           )}
         </div>
       </div>
+
+      <Tooltip id="app-tooltip" />
     </div>
   );
 }

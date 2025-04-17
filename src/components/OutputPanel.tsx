@@ -37,6 +37,17 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   const [copied, setCopied] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
+  // Determine if the button should be disabled and why
+  const isOpenDisabled = disabled || !outputFileLocally || !outputFileName;
+  let openButtonTooltip = "";
+  if (isOpenDisabled && !disabled) { // Only show config reason if not globally disabled
+    if (!outputFileLocally) {
+      openButtonTooltip = "Output is not configured to be saved locally.";
+    } else if (!outputFileName) {
+      openButtonTooltip = "No output file name is configured.";
+    }
+  }
+
   // Truncate content for preview
   const getPreviewContent = () => {
     if (output.combined_content.length > 1000) {
@@ -109,12 +120,18 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         >
           {copied ? 'Copied!' : 'Copy to Clipboard'}
         </button>
-        <button
-          onClick={onOpenFile}
-          disabled={disabled || !outputFileLocally || !outputFileName}
+        {/* Wrap button in span if disabled for tooltip */}
+        <span
+          data-tooltip-id={isOpenDisabled ? "app-tooltip" : undefined} // Apply tooltip ID only when disabled
+          data-tooltip-content={openButtonTooltip} // Apply tooltip content
         >
-          Open Output File
-        </button>
+          <button
+            onClick={onOpenFile}
+            disabled={isOpenDisabled} // Use the calculated disabled state
+          >
+            Open Output File
+          </button>
+        </span>
       </div>
       <div className="flex flex-row gap-2 items-center justify-center flex-shrink-0">
         <button
