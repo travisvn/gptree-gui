@@ -18,8 +18,8 @@
   --color-input-border: var(--input-border-color);
   --color-success: var(--success-color);
   --color-error: var(--error-color);
-  --color-header-bg: var(--header-bg);
-  --color-header-text: var(--header-text);
+  /* --color-header-bg: var(--header-bg); */
+  /* --color-header-text: var(--header-text); */
   --color-input: var(--input);
   --color-input-bg: var(--input-bg);
   --color-scrollbar-bg: var(--scrollbar-bg);

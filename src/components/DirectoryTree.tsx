@@ -148,6 +148,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
           {!isFolder && (
             <span className={clsx(
               "mr-1.5 text-text", // Spacing
+              'cursor-pointer opacity-60 group-hover:opacity-80',
               // isFileSelected ? "dark:text-white" : "text-text opacity-60 group-hover:opacity-100 group-hover:text-primary" // Explicit color for selected/unselected/hover
             )}>
               {isSelected ? (
@@ -177,7 +178,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
         {/* Children */}
         {isFolder && isExpanded && (
           // Use slightly lighter border for children indentation lines
-          <div className=" pl-2 ml-[calc(0.25rem+1.25rem*var(--level))] border-l border-gray-100 dark:border-gray-600">
+          <div className=" pl-2 ml-[calc(0.25rem+1.25rem*var(--level))] border-l border-border">
             {/* NOTE: The above might need adjustment if level isn't passed correctly or CSS var isn't supported */}
             {/* Simpler alternative: fixed margin/padding on children div */}
             {/* <div className="tree-children pl-2 ml-5 border-l border-gray-200 dark:border-gray-700"> */}
@@ -191,8 +192,8 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
   return (
     <div className="directory-tree flex flex-col h-full overflow-hidden">
       {/* Controls - Use lighter border */}
-      <div className="tree-controls flex justify-between items-center p-2 border-b border-[--border-color] flex-shrink-0">
-        <div className="tree-select-controls flex items-center gap-2">
+      <div className="flex justify-between items-center p-2 border-b border-border flex-shrink-0">
+        <div className=" flex items-center gap-2">
           <input
             type="checkbox" // Using styled native checkbox now
             checked={selectAllChecked}
@@ -205,7 +206,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
             Select All
           </label>
         </div>
-        <div className="tree-expand-controls flex gap-2">
+        <div className=" flex gap-2">
           <button onClick={expandAll} className="text-xs px-2 py-1">Expand</button>
           <button onClick={collapseAll} className="text-xs px-2 py-1">Collapse</button>
         </div>
@@ -213,7 +214,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
 
       {/* Scrollable tree container */}
       {/* Removed p-1, padding is handled per item now */}
-      <div className="tree-container flex-grow overflow-y-auto pt-1">
+      <div className="flex-grow overflow-y-auto pt-1">
         {renderTreeItem(tree)} {/* Start rendering at level 0 */}
       </div>
     </div>

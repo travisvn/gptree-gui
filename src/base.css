@@ -16,8 +16,6 @@
   --input-border-color: #d1d5db;
   --success-color: #10b981;
   --error-color: #ef4444;
-  --header-bg: #1e3a8a;
-  --header-text: white;
   --input-color: var(--text-color);
   --input-bg: white;
   --scrollbar-bg: #e5e7eb;
@@ -61,8 +59,6 @@
   --input-border-color: #4b5563;
   --success-color: #10b981;
   --error-color: #ef4444;
-  --header-bg: #1f2937;
-  --header-text: #f3f4f6;
   --input-color: var(--text-color);
   --input-bg: #374151;
   --scrollbar-bg: #1f2937;

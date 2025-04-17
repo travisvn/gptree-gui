@@ -4,46 +4,13 @@ import { invoke } from "@tauri-apps/api/core";
 import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
-import { app } from '@tauri-apps/api';
+// import { app } from '@tauri-apps/api';
 import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
 import { Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
-
-// Types
-interface DirectoryItem {
-  name: string;
-  path: string;
-  is_dir: boolean;
-  is_selected: boolean;
-  children: DirectoryItem[];
-}
-
-interface Config {
-  version: number;
-  use_git_ignore: boolean;
-  include_file_types: string;
-  exclude_file_types: string[];
-  output_file: string;
-  output_file_locally: boolean;
-  copy_to_clipboard: boolean;
-  safe_mode: boolean;
-  store_files_chosen: boolean;
-  line_numbers: boolean;
-  show_ignored_in_tree: boolean;
-  show_default_ignored_in_tree: boolean;
-  previous_files: string[];
-}
-
-interface OutputContent {
-  combined_content: string;
-  selected_files: string[];
-  estimated_tokens: number;
-}
-
-interface AppError {
-  message: string;
-}
+import { HEADER_LINK } from './lib/constants';
+import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
 
 const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
 
@@ -365,12 +332,16 @@ function App() {
   }, [output, pendingClipboardCopy]);
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-[--background] text-[--text-color]">
-      <header className="flex items-center justify-between flex-shrink-0 px-4 py-2 shadow-md bg-[--header-bg] text-[--header-text]">
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-background text-text">
+      <header className="flex items-center justify-between flex-shrink-0 px-4 py-2 shadow-md bg-light-bg text-text">
+        <a
+          href={HEADER_LINK}
+          target='_blank'
+          className="flex items-center gap-3 text-inherit"
+        >
           <GptreeLogo className="h-8 w-auto" />
           <h1 className="text-xl font-bold m-0">GPTree</h1>
-        </div>
+        </a>
 
         {currentDirectory && (
           <div className="flex-1 text-center text-sm truncate px-4"
@@ -410,7 +381,7 @@ function App() {
 
       <div className="flex flex-row flex-grow gap-4 p-4 overflow-hidden">
         {directoryTree ? (
-          <div className="flex flex-col p-3 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] w-1/3 min-w-[300px] max-w-[50vw] overflow-hidden output-panel">
+          <div className="output-panel flex flex-col p-3 border rounded-lg shadow-sm bg-light-bg border-border w-1/3 min-w-[300px] max-w-[50vw] overflow-hidden ">
             <h2 className="text-lg font-semibold mb-3 flex-shrink-0">Project Files</h2>
             <div className="flex-grow overflow-hidden mb-3">
               <DirectoryTree
