@@ -1,10 +1,8 @@
-import React, { useState, useEffect, createContext, useContext, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-// import "./styles.css";
 import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
-// import { app } from '@tauri-apps/api';
 import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
 import { Moon, Sun } from '@phosphor-icons/react';
@@ -12,39 +10,9 @@ import { cn } from './lib/utils';
 import { HEADER_LINK } from './lib/constants';
 import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTheme, ThemeProvider } from './components/ThemeProvider';
 
 const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
-
-// Theme context and provider
-const ThemeContext = createContext({ theme: "light", toggleTheme: () => { } });
-
-function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const getInitialTheme = () => {
-    const stored = localStorage.getItem("theme");
-    if (stored) return stored;
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return "dark";
-    }
-    return "light";
-  };
-  const [theme, setTheme] = useState<string>(getInitialTheme());
-  useEffect(() => {
-    // document.documentElement.classList.remove("theme-light", "theme-dark");
-    // document.documentElement.classList.add(`theme-${theme}`);
-    // document.documentElement.setAttribute("data-theme", theme);
-    document.documentElement.classList.remove("light", "dark");
-    document.documentElement.classList.add(theme);
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-  const toggleTheme = () => setTheme(theme === "light" ? "dark" : "light");
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
-  );
-}
-
-function useTheme() {
-  return useContext(ThemeContext);
-}
 
 function App() {
   const [currentDirectory, setCurrentDirectory] = useState<string>("");

@@ -335,30 +335,6 @@ label {
   text-overflow: ellipsis;
 }
 
-.error-message {
-  background-color: var(--error-color);
-  color: white;
-  padding: 0.5rem 2rem;
-  text-align: center;
-  transition: opacity 0.3s, transform 0.3s;
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.error-message.success {
-  background-color: var(--success-color);
-}
-
-.error-message.fade-in {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.error-message.fade-out {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
 .main-content {
   display: flex;
   flex: 1;
