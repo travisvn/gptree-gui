@@ -149,7 +149,7 @@ button:disabled {
 }
 
 .tree-children {
-  border-left: 2px solid var(--border-color);
+  /* border-left: 2px solid var(--border-color); */
   margin-left: 1.2rem;
   padding-left: 0.3rem;
   transition: border 0.3s;

@@ -1,6 +1,6 @@
+@import './base.css';
 @import 'tailwindcss' important;
 @import 'tw-animate-css';
-@import './base.css';
 
 /* @custom-variant dark (&:is(.dark *)); */
 /* @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *)); */
@@ -30,6 +30,12 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --secondary-color: color-mix(
+    in oklab,
+    var(--color-purple-300) /* oklch(82.7% 0.119 306.383) */ 50%,
+    transparent
+  ) !important;
 }
 
 .dark {
@@ -72,4 +78,5 @@
   --color-scrollbar-bg: var(--scrollbar-bg);
   --color-scrollbar-thumb: var(--scrollbar-thumb);
   --color-scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
+  --color-secondary: var(--secondary-color);
 }

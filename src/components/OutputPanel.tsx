@@ -115,7 +115,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-3 flex-shrink-0 justify-center">
+      <div className="flex flex-wrap gap-2 mb-3 flex-shrink-0 justify-center items-center">
         <button
           onClick={handleCopy}
           disabled={disabled}
@@ -141,7 +141,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         <button
           onClick={handleDownload}
           disabled={disabled || !!downloadStatus}
-          className="flex items-center gap-1.5"
+          className="flex items-center gap-1.5 justify-center"
         >
           <DownloadSimple size={16} /> {downloadStatus || 'Download'}
         </button>
@@ -149,7 +149,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         <button
           onClick={() => setShowPreview(!showPreview)}
           disabled={disabled}
-          className="flex items-center gap-1.5"
+          className="flex items-center gap-1.5 justify-center"
         >
           {showPreview ? <EyeSlash size={16} /> : <Eye size={16} />} {showPreview ? 'Hide' : 'Show'} Preview
         </button>

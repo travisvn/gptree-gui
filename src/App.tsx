@@ -459,7 +459,9 @@ function App() {
                 onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
                 disabled={loading || (!globalConfig && configMode === 'global') || (!localConfig && configMode === 'local')}
                 className={cn(
-                  "config-mode-button",
+                  '',
+                  // "config-mode-button",
+                  // 'hover:bg-black/50 dark:hover:bg-white/10',
                   configMode === 'local' ? (localConfig ? 'active' : 'inactive') : (globalConfig ? 'active' : 'inactive')
                 )}
                 title={configMode === 'global' ? 'Switch to Local Project Config' : 'Switch to Global Config'}

@@ -119,9 +119,9 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
         <div
           className={clsx(
             'group flex items-center p-1 rounded', // Base styles
-            'hover:bg-[--primary-color] hover:text-white', // Hover styles
+            'hover:bg-secondary dark:hover:text-white', // Hover styles
             {
-              'bg-[--primary-color] text-white': isFileSelected, // Selected file style
+              'bg-border dark:text-white': isFileSelected, // Selected file style
               'cursor-pointer': !isFolder, // Cursor for files
             }
           )}
@@ -148,7 +148,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
           {!isFolder && (
             <span className={clsx(
               "mr-1.5", // Spacing
-              isFileSelected ? "text-white" : "text-[--text-color] opacity-60 group-hover:opacity-100 group-hover:text-white" // Explicit color for selected/unselected/hover
+              isFileSelected ? "dark:text-white" : "text-[--text-color] opacity-60 group-hover:opacity-100 group-hover:text-primary" // Explicit color for selected/unselected/hover
             )}>
               {isSelected ? (
                 <CheckSquare size={20} weight="duotone" />
@@ -177,7 +177,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
         {/* Children */}
         {isFolder && isExpanded && (
           // Use slightly lighter border for children indentation lines
-          <div className="tree-children pl-2 ml-[calc(0.25rem+1.25rem*var(--level))] border-l border-gray-200 dark:border-gray-700">
+          <div className="tree-children pl-2 ml-[calc(0.25rem+1.25rem*var(--level))] border-l border-gray-100 dark:border-gray-600">
             {/* NOTE: The above might need adjustment if level isn't passed correctly or CSS var isn't supported */}
             {/* Simpler alternative: fixed margin/padding on children div */}
             {/* <div className="tree-children pl-2 ml-5 border-l border-gray-200 dark:border-gray-700"> */}
