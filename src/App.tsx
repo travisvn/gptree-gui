@@ -419,7 +419,7 @@ function App() {
                 selectedFiles={selectedFiles}
               />
             </div>
-            <div className="flex flex-col gap-2 pt-3 border-t border-[--border-color] flex-shrink-0">
+            <div className="flex flex-col gap-2 pt-3 border-t border-border flex-shrink-0">
               <div className="flex justify-between items-center text-sm text-[--light-text]">
                 <span>{selectedFiles?.length ?? 0} files selected</span>
                 {config && config.store_files_chosen && localConfig && localConfig.previous_files && localConfig.previous_files.length > 0 && (

@@ -5,8 +5,7 @@
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafb);
 }
-:root,
-.theme-light {
+:root {
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
   --text-color: #1f2937;
@@ -31,8 +30,27 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* --secondary-color: color-mix(
+    in oklab,
+    oklch(82.7% 0.119 306.383) 50%,
+    transparent
+  ) !important; */
+
+  /* --secondary-color: color-mix(
+    in oklab,
+    var(--color-purple-300) 50%,
+    transparent
+  ) !important; */
+
+  --secondary-color: color-mix(
+    in oklab,
+    var(--color-blue-500) 20%,
+    transparent
+  ) !important;
 }
-.theme-dark {
+
+.dark {
   --primary-color: #3b82f6;
   --primary-hover: #2563eb;
   --text-color: #f3f4f6;
@@ -50,6 +68,12 @@
   --scrollbar-bg: #1f2937;
   --scrollbar-thumb: #374151;
   --scrollbar-thumb-hover: #4b5563;
+
+  --secondary-color: color-mix(
+    in oklab,
+    var(--color-sky-300) 50%,
+    transparent
+  ) !important;
 }
 
 html,
@@ -635,6 +659,8 @@ input[type='checkbox'] {
   border-radius: 0.25rem;
   border: 1px solid var(--input-border-color);
   background-color: var(--input-bg);
+  /* max-height: 0.75rem; */
+  /* max-width: 0.75rem; */
   height: 1rem;
   width: 1rem;
   margin-right: 0.5rem;
@@ -642,6 +668,11 @@ input[type='checkbox'] {
   appearance: none;
   position: relative;
   cursor: pointer;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  place-content: center;
+  box-shadow: none;
 }
 
 input[type='checkbox']:checked {
@@ -651,13 +682,14 @@ input[type='checkbox']:checked {
 
 input[type='checkbox']:checked::after {
   content: '\2713';
+  /* font-size: 0.6rem; */
   position: absolute;
   color: white;
-  font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 700;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  /* overflow: hidden; */
 }
 
 input[type='checkbox']:disabled {
@@ -715,11 +747,11 @@ input[type='checkbox']:disabled + label {
   color: var(--text-color);
 }
 
-*:focus-visible {
+/* *:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 1px;
   border-radius: 2px;
-}
+} */
 
 input:focus-visible,
 button:focus-visible,

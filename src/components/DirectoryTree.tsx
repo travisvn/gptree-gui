@@ -133,7 +133,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
           {/* Folder Icon/Toggle */}
           {isFolder && (
             <span
-              className="cursor-pointer mr-1.5 text-[--text-color] group-hover:text-white" // Icon color adjusts on hover
+              className="cursor-pointer mr-1.5 text-text " // Icon color adjusts on hover
               onClick={e => { e.stopPropagation(); toggleFolder(item.path); }}
             >
               {isExpanded ? (
@@ -147,8 +147,8 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
           {/* File Checkbox/Icon */}
           {!isFolder && (
             <span className={clsx(
-              "mr-1.5", // Spacing
-              isFileSelected ? "dark:text-white" : "text-[--text-color] opacity-60 group-hover:opacity-100 group-hover:text-primary" // Explicit color for selected/unselected/hover
+              "mr-1.5 text-text", // Spacing
+              // isFileSelected ? "dark:text-white" : "text-text opacity-60 group-hover:opacity-100 group-hover:text-primary" // Explicit color for selected/unselected/hover
             )}>
               {isSelected ? (
                 <CheckSquare size={20} weight="duotone" />
@@ -177,7 +177,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
         {/* Children */}
         {isFolder && isExpanded && (
           // Use slightly lighter border for children indentation lines
-          <div className="tree-children pl-2 ml-[calc(0.25rem+1.25rem*var(--level))] border-l border-gray-100 dark:border-gray-600">
+          <div className=" pl-2 ml-[calc(0.25rem+1.25rem*var(--level))] border-l border-gray-100 dark:border-gray-600">
             {/* NOTE: The above might need adjustment if level isn't passed correctly or CSS var isn't supported */}
             {/* Simpler alternative: fixed margin/padding on children div */}
             {/* <div className="tree-children pl-2 ml-5 border-l border-gray-200 dark:border-gray-700"> */}
@@ -202,12 +202,12 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
             disabled={allFilePathsInTree.length === 0}
           />
           <label htmlFor="select-all" className="cursor-pointer text-sm select-none">
-            Select All Files
+            Select All
           </label>
         </div>
         <div className="tree-expand-controls flex gap-2">
-          <button onClick={expandAll} className="text-xs px-2 py-1">Expand All</button>
-          <button onClick={collapseAll} className="text-xs px-2 py-1">Collapse All</button>
+          <button onClick={expandAll} className="text-xs px-2 py-1">Expand</button>
+          <button onClick={collapseAll} className="text-xs px-2 py-1">Collapse</button>
         </div>
       </div>
 

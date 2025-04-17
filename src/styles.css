@@ -5,59 +5,6 @@
 /* @custom-variant dark (&:is(.dark *)); */
 /* @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *)); */
 
-:root {
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
-  --text-color: #1f2937;
-  --light-text: #6b7280;
-  --background: #f3f4f6;
-  --light-bg: #ffffff;
-  --border-color: #e5e7eb;
-  --input-border-color: #d1d5db;
-  --success-color: #10b981;
-  --error-color: #ef4444;
-  --header-bg: #1e3a8a;
-  --header-text: white;
-  --input-color: var(--text-color);
-  --input-bg: white;
-  --scrollbar-bg: #e5e7eb;
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-thumb-hover: #a1a1aa;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  --secondary-color: color-mix(
-    in oklab,
-    var(--color-purple-300) /* oklch(82.7% 0.119 306.383) */ 50%,
-    transparent
-  ) !important;
-}
-
-.dark {
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
-  --text-color: #f3f4f6;
-  --light-text: #9ca3af;
-  --background: #111827;
-  --light-bg: #1f2937;
-  --border-color: #374151;
-  --input-border-color: #4b5563;
-  --success-color: #10b981;
-  --error-color: #ef4444;
-  --header-bg: #1f2937;
-  --header-text: #f3f4f6;
-  --input-color: var(--text-color);
-  --input-bg: #374151;
-  --scrollbar-bg: #1f2937;
-  --scrollbar-thumb: #374151;
-  --scrollbar-thumb-hover: #4b5563;
-}
-
 /* https://tailwindcss.com/docs/theme#theme-variable-namespaces */
 
 @theme inline {
