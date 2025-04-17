@@ -54,10 +54,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
       </div>
 
       <div
-        className={`config-content overflow-y-auto transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[50vh] opacity-100 p-3 pt-0' : 'max-h-0 opacity-0 p-0'
+        className={`config-content overflow-y-auto transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[50vh] opacity-100 p-3 pt-2' : 'max-h-0 opacity-0 p-0'
           }`}
       >
-        <div className="config-section mb-4 pb-4 border-b border-[--border-color]">
+        <div className="config-section mb-4 pb-2">
           <h4 className="text-sm font-medium text-[--light-text] mb-2">File Selection</h4>
           <div className="config-option flex items-center gap-2 mb-2">
             <input
@@ -96,7 +96,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
           </div>
         </div>
 
-        <div className="config-section mb-4 pb-4 border-b border-[--border-color]">
+        <div className="config-section mb-4 pb-2">
           <h4 className="text-sm font-medium text-[--light-text] mb-2">File Types</h4>
           <div className="config-option flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
             <label htmlFor="include-file-types" className="flex-shrink-0 mb-1 sm:mb-0">Include types:</label>
@@ -124,7 +124,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
           </div>
         </div>
 
-        <div className="config-section mb-4 pb-4 border-b border-[--border-color]">
+        <div className="config-section mb-4 pb-2">
           <h4 className="text-sm font-medium text-[--light-text] mb-2">Output Options</h4>
           <div className="config-option flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
             <label htmlFor="output-file" className="flex-shrink-0 mb-1 sm:mb-0">Output file name:</label>
@@ -172,7 +172,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
           </div>
         </div>
 
-        <div className="config-section mb-0 pb-0 border-b-0">
+        <div className="config-section mb-0 pb-0">
           <h4 className="text-sm font-medium text-[--light-text] mb-2">Safety & Storage</h4>
           <div className="config-option flex items-center gap-2 mb-2">
             <input

@@ -402,7 +402,7 @@ function App() {
 
       <div className="flex flex-row flex-grow gap-4 p-4 overflow-hidden">
         {directoryTree ? (
-          <div className="flex flex-col p-3 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] w-1/3 min-w-[300px] max-w-[50vw] overflow-hidden">
+          <div className="flex flex-col p-3 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] w-1/3 min-w-[300px] max-w-[50vw] overflow-hidden output-panel">
             <h2 className="text-lg font-semibold mb-3 flex-shrink-0">Project Files</h2>
             <div className="flex-grow overflow-hidden mb-3">
               <DirectoryTree
@@ -491,7 +491,7 @@ function App() {
           )}
 
           {!output && config && (
-            <div className="flex-grow flex items-center justify-center text-center p-4 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] text-[--light-text]">
+            <div className="flex-grow flex items-center justify-center text-center p-4 output-panel border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] overflow-hidden">
               <p>Select files and click "Generate Output" to see results here.</p>
             </div>
           )}

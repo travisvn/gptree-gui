@@ -107,7 +107,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
 
   return (
     <div className={`output-panel flex flex-col p-3 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] overflow-hidden ${className}`}>
-      <div className="output-header flex justify-between items-center mb-3 flex-shrink-0 border-b border-[--border-color] pb-2">
+      <div className="output-header flex justify-between items-center mb-3 flex-shrink-0">
         <h3 className="text-base font-semibold m-0">Output</h3>
         <div className="output-stats flex gap-3 text-sm text-[--light-text]">
           <span><strong>Files:</strong> {output.selected_files.length}</span>
