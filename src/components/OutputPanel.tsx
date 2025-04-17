@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-
-// Add Tauri imports
-let isTauri = false;
-try {
-  // @ts-ignore
-  isTauri = !!window.__TAURI__;
-} catch { }
+import { invoke, isTauri } from '@tauri-apps/api/core';
 
 interface OutputContent {
   combined_content: string;
@@ -46,9 +39,12 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     return output.combined_content;
   };
 
+  // when using `"withGlobalTauri": true`, you may use
+  // const { save } = window.__TAURI__.dialog;
+
   // Download output as file
   const handleDownload = async () => {
-    if (isTauri) {
+    if (isTauri()) {
       try {
         setDownloadStatus('saving...');
         console.log('Invoking pick_save_path with content length:', output.combined_content.length);
