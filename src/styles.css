@@ -1,2 +1,75 @@
 @import 'tailwindcss' important;
+@import 'tw-animate-css';
 @import './base.css';
+
+/* @custom-variant dark (&:is(.dark *)); */
+/* @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *)); */
+
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --text-color: #1f2937;
+  --light-text: #6b7280;
+  --background: #f3f4f6;
+  --light-bg: #ffffff;
+  --border-color: #e5e7eb;
+  --input-border-color: #d1d5db;
+  --success-color: #10b981;
+  --error-color: #ef4444;
+  --header-bg: #1e3a8a;
+  --header-text: white;
+  --input-color: var(--text-color);
+  --input-bg: white;
+  --scrollbar-bg: #e5e7eb;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #a1a1aa;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dark {
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --text-color: #f3f4f6;
+  --light-text: #9ca3af;
+  --background: #111827;
+  --light-bg: #1f2937;
+  --border-color: #374151;
+  --input-border-color: #4b5563;
+  --success-color: #10b981;
+  --error-color: #ef4444;
+  --header-bg: #1f2937;
+  --header-text: #f3f4f6;
+  --input-color: var(--text-color);
+  --input-bg: #374151;
+  --scrollbar-bg: #1f2937;
+  --scrollbar-thumb: #374151;
+  --scrollbar-thumb-hover: #4b5563;
+}
+
+/* https://tailwindcss.com/docs/theme#theme-variable-namespaces */
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-text: var(--text-color);
+  --color-light-text: var(--light-text);
+  --color-background: var(--background);
+  --color-light-bg: var(--light-bg);
+  --color-border: var(--border-color);
+  --color-input-border: var(--input-border-color);
+  --color-success: var(--success-color);
+  --color-error: var(--error-color);
+  --color-header-bg: var(--header-bg);
+  --color-header-text: var(--header-text);
+  --color-input: var(--input);
+  --color-input-bg: var(--input-bg);
+  --color-scrollbar-bg: var(--scrollbar-bg);
+  --color-scrollbar-thumb: var(--scrollbar-thumb);
+  --color-scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
+}

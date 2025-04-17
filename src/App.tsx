@@ -8,6 +8,7 @@ import { app } from '@tauri-apps/api';
 import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
 import { Moon, Sun } from '@phosphor-icons/react';
+import { cn } from './lib/utils';
 
 // Types
 interface DirectoryItem {
@@ -44,6 +45,8 @@ interface AppError {
   message: string;
 }
 
+const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
+
 // Theme context and provider
 const ThemeContext = createContext({ theme: "light", toggleTheme: () => { } });
 
@@ -58,8 +61,11 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
   const [theme, setTheme] = useState<string>(getInitialTheme());
   useEffect(() => {
-    document.documentElement.classList.remove("theme-light", "theme-dark");
-    document.documentElement.classList.add(`theme-${theme}`);
+    // document.documentElement.classList.remove("theme-light", "theme-dark");
+    // document.documentElement.classList.add(`theme-${theme}`);
+    // document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
   const toggleTheme = () => setTheme(theme === "light" ? "dark" : "light");
@@ -338,6 +344,8 @@ function App() {
       if (!lastDirLoaded && !currentDirectory) {
         // Option 1: Prompt user immediately (can be intrusive)
         // handleSelectDirectory();
+        setCurrentDirectory(DEFAULT_DIRECTORY);
+        await loadDirectory(DEFAULT_DIRECTORY);
 
         // Option 2: Show a message or placeholder state indicating no directory selected
         console.log("No last directory found, waiting for user selection.");
@@ -450,7 +458,10 @@ function App() {
               <button
                 onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
                 disabled={loading || (!globalConfig && configMode === 'global') || (!localConfig && configMode === 'local')}
-                className={`config-mode-button ${configMode === 'local' ? (localConfig ? 'active' : 'inactive') : (globalConfig ? 'active' : 'inactive')}`}
+                className={cn(
+                  "config-mode-button",
+                  configMode === 'local' ? (localConfig ? 'active' : 'inactive') : (globalConfig ? 'active' : 'inactive')
+                )}
                 title={configMode === 'global' ? 'Switch to Local Project Config' : 'Switch to Global Config'}
               >
                 {configMode === 'global' ? (localConfig ? 'Use Local' : 'Local N/A') : (globalConfig ? 'Use Global' : 'Global N/A')} Config
