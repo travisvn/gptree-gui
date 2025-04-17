@@ -17,7 +17,14 @@ interface DirectoryTreeProps {
 }
 
 const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, selectedFiles }) => {
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
+    // Initialize with the root folder expanded if it's a directory
+    const initial = new Set<string>();
+    if (tree && tree.is_dir) {
+      initial.add(tree.path);
+    }
+    return initial;
+  });
   // We derive "select all" state instead of storing it
   // const [selectAllChecked, setSelectAllChecked] = useState<boolean>(false);
   const [localSelectedFiles, setLocalSelectedFiles] = useState<Set<string>>(new Set(selectedFiles));
