@@ -22,7 +22,6 @@ enum ConfigMode {
 
 // Store the app state
 struct AppState {
-    current_config: std::sync::Mutex<Config>,
     current_dir: std::sync::Mutex<PathBuf>,
     config_mode: std::sync::Mutex<ConfigMode>,
 }
@@ -82,52 +81,27 @@ async fn load_directory(
     // Update the current directory
     *state.current_dir.lock().unwrap() = path.to_path_buf();
 
-    // Save the selected directory
+    // Save the selected directory to global config's last_directory
     if let Err(e) = config::update_last_directory(path) {
         eprintln!("Warning: Failed to save last directory: {}", e);
     }
 
-    // Try to load project config
-    match config::load_or_create_project_config(path) {
-        Ok(project_config) => {
-            // Merge with global config
-            let mut config = match config::load_or_create_global_config() {
-                Ok(global_config) => global_config,
-                Err(_) => Config::default(),
-            };
+    // Need to load *a* config temporarily just to get tree display options
+    // Let's try local first, then global. This is only for display.
+    let display_config = config::load_or_create_project_config(path)
+        .or_else(|_| config::load_or_create_global_config())
+        .unwrap_or_default();
 
-            // Project config takes precedence for most settings
-            config.use_git_ignore = project_config.use_git_ignore;
-            config.include_file_types = project_config.include_file_types;
-            config.exclude_file_types = project_config.exclude_file_types;
-            config.output_file = project_config.output_file;
-            config.output_file_locally = project_config.output_file_locally;
-            config.safe_mode = project_config.safe_mode;
-            config.store_files_chosen = project_config.store_files_chosen;
-            config.line_numbers = project_config.line_numbers;
-            config.show_ignored_in_tree = project_config.show_ignored_in_tree;
-            config.show_default_ignored_in_tree = project_config.show_default_ignored_in_tree;
-            config.previous_files = project_config.previous_files;
-
-            // Update the state
-            *state.current_config.lock().unwrap() = config.clone();
-
-            // Load directory tree
-            match fs::get_directory_tree(
-                path,
-                config.use_git_ignore,
-                config.show_ignored_in_tree,
-                config.show_default_ignored_in_tree,
-            ) {
-                Ok(tree) => Ok(CommandResult::success(tree)),
-                Err(e) => Ok(CommandResult::error(format!(
-                    "Failed to get directory tree: {}",
-                    e
-                ))),
-            }
-        }
+    // Load directory tree based on display settings
+    match fs::get_directory_tree(
+        path,
+        display_config.use_git_ignore,
+        display_config.show_ignored_in_tree,
+        display_config.show_default_ignored_in_tree,
+    ) {
+        Ok(tree) => Ok(CommandResult::success(tree)),
         Err(e) => Ok(CommandResult::error(format!(
-            "Failed to load config: {}",
+            "Failed to get directory tree: {}",
             e
         ))),
     }
@@ -153,27 +127,30 @@ async fn get_config(state: tauri::State<'_, AppState>) -> Result<CommandResult<C
 async fn update_config(
     config: Config,
     state: tauri::State<'_, AppState>,
-) -> Result<CommandResult<bool>, String> {
-    let config_mode = state.config_mode.lock().unwrap();
+) -> Result<CommandResult<bool>, AppError> {
+    let config_mode = *state.config_mode.lock().unwrap();
     let current_dir = state.current_dir.lock().unwrap().clone();
-    let result = match *config_mode {
-        ConfigMode::LocalOverride => {
-            let config_path = current_dir.join(".gptree_config");
-            config::save_config(&config_path, &config, false)
-        }
+
+    // Determine config path based on mode
+    let config_path = match config_mode {
+        ConfigMode::LocalOverride => Ok::<PathBuf, AppError>(current_dir.join(".gptree_config")),
         ConfigMode::Global => {
-            let home_dir = dirs::home_dir().ok_or("No home dir")?;
-            let config_path = home_dir.join(".gptreerc");
-            config::save_config(&config_path, &config, true)
+            // Use ? to propagate AppError directly
+            let home_dir = dirs::home_dir()
+                .ok_or_else(|| AppError::Config("Could not find home directory".to_string()))?;
+            Ok::<PathBuf, AppError>(home_dir.join(".gptreerc"))
         }
     };
-    match result {
-        Ok(_) => Ok(CommandResult::success(true)),
-        Err(e) => Ok(CommandResult::error(format!(
-            "Failed to save config: {}",
-            e
-        ))),
-    }
+
+    // If getting the path failed, config_path is Err. Propagate it.
+    let config_path = config_path?;
+
+    // Save the config
+    let is_global = config_mode == ConfigMode::Global;
+    config::save_config(&config_path, &config, is_global)?;
+
+    // If save_config succeeds, return success
+    Ok(CommandResult::success(true))
 }
 
 // Command to generate output based on selected files
@@ -182,8 +159,24 @@ async fn generate_output(
     selected_files: Vec<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<CommandResult<OutputContent>, String> {
-    let config = state.current_config.lock().unwrap().clone();
     let current_dir = state.current_dir.lock().unwrap().clone();
+    let config_mode = *state.config_mode.lock().unwrap();
+
+    // Load the active config based on the mode
+    let config_result = match config_mode {
+        ConfigMode::LocalOverride => config::load_or_create_project_config(&current_dir),
+        ConfigMode::Global => config::load_or_create_global_config(),
+    };
+
+    let config = match config_result {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            return Ok(CommandResult::error(format!(
+                "Failed to load active config: {}",
+                e
+            )))
+        }
+    };
 
     // Process the files
     match processor::combine_files_with_structure(&current_dir, &config, &selected_files) {
@@ -333,7 +326,6 @@ async fn pick_save_path(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app_state = AppState {
-        current_config: std::sync::Mutex::new(Config::default()),
         current_dir: std::sync::Mutex::new(PathBuf::from(".")),
         config_mode: std::sync::Mutex::new(ConfigMode::Global),
     };

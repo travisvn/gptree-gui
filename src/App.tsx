@@ -38,6 +38,10 @@ interface OutputContent {
   estimated_tokens: number;
 }
 
+interface AppError {
+  message: string;
+}
+
 // Theme context and provider
 const ThemeContext = createContext({ theme: "light", toggleTheme: () => { } });
 
@@ -153,20 +157,29 @@ function App() {
       setLoading(true);
       setError(null);
 
-      const result = await invoke<{ success: boolean; data?: DirectoryItem; error?: string }>(
+      // First, load the directory tree structure
+      const treeResult = await invoke<{ success: boolean; data?: DirectoryItem; error?: string }>(
         "load_directory",
         { path }
       );
 
-      if (result.success && result.data) {
-        setDirectoryTree(result.data);
-        // Fetch both configs
+      if (treeResult.success && treeResult.data) {
+        setDirectoryTree(treeResult.data);
+        // Only after successfully loading the tree, fetch the configs
         await fetchConfigs(path);
-      } else if (result.error) {
-        setError(result.error);
+      } else if (treeResult.error) {
+        setError(treeResult.error);
+        setDirectoryTree(null); // Clear tree on error
+        setGlobalConfig(null);
+        setLocalConfig(null);
+        setConfig(null);
       }
     } catch (err) {
       setError(`Error loading directory: ${err}`);
+      setDirectoryTree(null); // Clear tree on error
+      setGlobalConfig(null);
+      setLocalConfig(null);
+      setConfig(null);
     } finally {
       setLoading(false);
     }
@@ -177,15 +190,23 @@ function App() {
     try {
       setLoading(true);
 
-      const result = await invoke<{ success: boolean; error?: string }>(
+      const result = await invoke<{ success: boolean; error?: string | AppError }>(
         "update_config",
         { config: newConfig }
       );
 
       if (result.success) {
         setConfig(newConfig);
+        // Also update the correct config in state
+        if (configMode === 'local') {
+          setLocalConfig(newConfig);
+        } else {
+          setGlobalConfig(newConfig);
+        }
       } else if (result.error) {
-        setError(result.error);
+        // AppError object might be serialized as a string, or could be just a string
+        const errorMsg = typeof result.error === 'object' && result.error !== null ? JSON.stringify(result.error) : result.error;
+        setError(errorMsg);
       }
     } catch (err) {
       setError(`Error updating configuration: ${err}`);
@@ -399,11 +420,8 @@ function App() {
                   return;
                 }
                 await updateConfig(newConfig);
-                // Also update the correct config in state
-                if (configMode === 'local') setLocalConfig(newConfig);
-                else setGlobalConfig(newConfig);
               }}
-              disabled={loading || !currentDirectory || !directoryTree}
+              disabled={loading || !currentDirectory}
             />
           )}
 
