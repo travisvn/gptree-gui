@@ -5,6 +5,7 @@ import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
 import { app } from '@tauri-apps/api';
+import GptreeLogo from './assets/gptree_logo.svg?react';
 
 // Types
 interface DirectoryItem {
@@ -306,7 +307,10 @@ function App() {
   return (
     <div className=" max-h-[100vh] flex flex-col max-w-[100vw] mr-0 min-h-full">
       <header className="app-header">
-        <h1 className="text-2xl font-bold">GPTree</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.7em' }}>
+          <GptreeLogo className="h-9 w-auto text-indigo-600 dark:text-indigo-400" />
+          <h1 className="text-2xl font-bold" style={{ margin: 0 }}>GPTree</h1>
+        </div>
         <div className="header-controls">
           <button onClick={toggleTheme} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`} style={{ fontSize: "1.3em", background: "none", border: "none", marginRight: "0.5em" }}>
             {theme === "light" ? "🌙" : "☀️"}
