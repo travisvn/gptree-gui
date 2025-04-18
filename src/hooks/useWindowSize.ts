@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 // Attempting import via Window class
-import { Window, LogicalSize, getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useDebounce } from './useDebounce';
 import { TauriEvent } from '@tauri-apps/api/event';
 

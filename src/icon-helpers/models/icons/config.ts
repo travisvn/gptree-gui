@@ -1,4 +1,4 @@
-import type { LogLevel } from '../../logging/logger';
+// import type { LogLevel } from '../../logging/logger';
 import type { CloneOptions } from './cloneOptions';
 import type { FileIcon } from './files/fileIcon';
 import type { FolderIcon } from './folders/folderIcon';
@@ -31,7 +31,7 @@ export type Config = {
     customClones: LanguageIconClone[];
   };
   enableLogging: boolean;
-  logLevel: LogLevel;
+  // logLevel: LogLevel;
 };
 
 export type IconAssociations = {

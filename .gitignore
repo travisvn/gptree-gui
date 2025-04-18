@@ -25,3 +25,5 @@ dist-ssr
 
 gptree_output.txt
 .gptreerc
+
+.env
