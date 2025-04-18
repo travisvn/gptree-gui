@@ -263,7 +263,7 @@ button:active {
 
 input,
 button {
-  /* outline: none; */
+  outline: none;
 }
 
 #greet-input {
@@ -745,5 +745,5 @@ input[type='checkbox']:disabled + label {
 input:focus-visible,
 button:focus-visible,
 input[type='checkbox']:focus-visible {
-  /* outline-offset: 0px; */
+  outline-offset: 0px;
 }
