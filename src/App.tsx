@@ -353,10 +353,10 @@ function App() {
         <a
           href={HEADER_LINK}
           target='_blank'
-          className="flex items-center gap-3 text-inherit"
+          className="flex items-end gap-1.5 text-inherit"
         >
           <GptreeLogo className="h-8 w-auto" />
-          <h1 className="text-xl font-bold m-0">GPTree</h1>
+          <h1 className="text-2xl/none font-bold m-0 tracking-tighter">GPTree</h1>
         </a>
 
         {currentDirectory && (
@@ -505,7 +505,7 @@ function App() {
         )}
 
         <div className="flex flex-col gap-4 w-2/3 overflow-hidden">
-          <div className='flex flex-row justify-between items-center'>
+          <div className='flex flex-row justify-between items-center gap-2'>
             {currentDirectory && (globalConfig || localConfig) && (
               <div className="config-mode-toggle flex items-center gap-3 flex-shrink-0">
                 <button
@@ -527,14 +527,19 @@ function App() {
                 </span>
               </div>
             )}
-
-            <a
-              href={GITHUB_LINK}
-              target="_blank"
-              className="text-sm text-[--light-text] hover:text-text"
-            >
-              <strong>GitHub</strong>
-            </a>
+            <div className={cn(
+              'flex items-center gap-3',
+              DISPLAY_VERSION_RIBBON && 'pr-12',
+              // !currentDirectory && 'hidden'
+            )}>
+              <a
+                href={GITHUB_LINK}
+                target="_blank"
+                className="text-sm text-light-text hover:text-text"
+              >
+                <strong>GitHub</strong>
+              </a>
+            </div>
           </div>
 
           {config && (
