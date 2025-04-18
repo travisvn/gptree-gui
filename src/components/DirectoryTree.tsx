@@ -68,6 +68,19 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
     setLocalSelectedFiles(new Set(selectedFiles));
   }, [selectedFiles]);
 
+  // Reset expanded state when the tree prop changes
+  useEffect(() => {
+    if (tree && tree.is_dir) {
+      setExpandedFolders(new Set([tree.path]));
+    } else {
+      setExpandedFolders(new Set()); // Clear if tree is null or not a directory
+    }
+    // Also reset local file selection when tree changes
+    setLocalSelectedFiles(new Set());
+    // Note: We don't call onFileSelection here because the parent (`App.tsx`)
+    // already manages clearing/setting selections when the directory changes.
+  }, [tree]); // Re-run when the tree prop changes
+
   const toggleFolder = (path: string) => {
     setExpandedFolders(prev => {
       const next = new Set(prev);
