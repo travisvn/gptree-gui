@@ -7,7 +7,7 @@ import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
 import { Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
-import { HEADER_LINK } from './lib/constants';
+import { HEADER_LINK, GITHUB_LINK, VERSION_NAME, DISPLAY_VERSION_RIBBON } from './lib/constants';
 import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme, ThemeProvider } from './components/ThemeProvider';
@@ -366,6 +366,34 @@ function App() {
         </div>
       </header>
 
+
+      <div className="relative">
+        <div className='absolute top-0 right-0 z-10 overflow-hidden w-24 h-24 pointer-events-none'> {/* Container to clip */}
+          {/* BETA ribbon here - replacing comment with actual ribbon */}
+          {DISPLAY_VERSION_RIBBON && (
+            <div className="
+            absolute
+            top-[20px]
+            right-[-30px]
+            w-[120px]
+            transform
+            rotate-45
+            bg-yellow-400
+            text-center
+            text-black
+            text-xs
+            font-semibold
+            uppercase
+            py-1
+            shadow-md
+            pointer-events-auto
+          ">
+              {VERSION_NAME}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="relative">
         <div className="absolute top-0 left-0 right-0 h-8 w-full z-50">
           <AnimatePresence>
@@ -458,27 +486,37 @@ function App() {
         )}
 
         <div className="flex flex-col gap-4 w-2/3 overflow-hidden">
-          {currentDirectory && (globalConfig || localConfig) && (
-            <div className="config-mode-toggle flex items-center gap-3 flex-shrink-0">
-              <button
-                onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
-                disabled={loading || (!globalConfig && configMode === 'global') || (!localConfig && configMode === 'local')}
-                className={cn(
-                  '',
-                  // "config-mode-button",
-                  // 'hover:bg-black/50 dark:hover:bg-white/10',
-                  configMode === 'local' ? (localConfig ? 'active' : 'inactive') : (globalConfig ? 'active' : 'inactive')
-                )}
-                title={configMode === 'global' ? 'Switch to Local Project Config' : 'Switch to Global Config'}
-              >
-                {configMode === 'global' ? (localConfig ? 'Use Local' : 'Local N/A') : (globalConfig ? 'Use Global' : 'Global N/A')} Config
-              </button>
-              <span className="text-sm text-[--light-text]">
-                <strong>Active:</strong> {configMode === 'local' ? 'Local Project' : 'Global'}
-                {!config && ' (No config loaded)'}
-              </span>
-            </div>
-          )}
+          <div className='flex flex-row justify-between items-center'>
+            {currentDirectory && (globalConfig || localConfig) && (
+              <div className="config-mode-toggle flex items-center gap-3 flex-shrink-0">
+                <button
+                  onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
+                  disabled={loading || (!globalConfig && configMode === 'global') || (!localConfig && configMode === 'local')}
+                  className={cn(
+                    '',
+                    // "config-mode-button",
+                    // 'hover:bg-black/50 dark:hover:bg-white/10',
+                    configMode === 'local' ? (localConfig ? 'active' : 'inactive') : (globalConfig ? 'active' : 'inactive')
+                  )}
+                  title={configMode === 'global' ? 'Switch to Local Project Config' : 'Switch to Global Config'}
+                >
+                  {configMode === 'global' ? (localConfig ? 'Use Local' : 'Local N/A') : (globalConfig ? 'Use Global' : 'Global N/A')} Config
+                </button>
+                <span className="text-sm text-[--light-text]">
+                  <strong>Active:</strong> {configMode === 'local' ? 'Local Project' : 'Global'}
+                  {!config && ' (No config loaded)'}
+                </span>
+              </div>
+            )}
+
+            <a
+              href={GITHUB_LINK}
+              target="_blank"
+              className="text-sm text-[--light-text] hover:text-text"
+            >
+              <strong>GitHub</strong>
+            </a>
+          </div>
 
           {config && (
             <ConfigPanel
