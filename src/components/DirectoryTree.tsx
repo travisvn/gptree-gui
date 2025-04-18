@@ -126,7 +126,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
     const isSelected = localSelectedFiles.has(item.path);
     const isFolder = item.is_dir;
     const isFileSelected = !isFolder && isSelected;
-    const iconPath = getMaterialIconPath(item.name, isFolder); // Get the icon path
+    const iconPath = getMaterialIconPath(item.name, isFolder, isExpanded);
 
     return (
       <div key={item.path} className="flex flex-col">
@@ -151,14 +151,14 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
               className="cursor-pointer mr-1.5 flex items-center gap-1 text-text" // Added flex/gap/text color
               onClick={e => { e.stopPropagation(); toggleFolder(item.path); }}
             >
-              {/* Material Folder Icon */}
+              {/* Material Folder Icon (using the path which now includes -open if expanded) */}
               <img src={iconPath} alt="" className="w-5 h-5 flex-shrink-0" />
-              {/* Expansion Toggle Icon (using Phosphor) */}
-              {isExpanded ? (
+              {/* Expansion Toggle Icon (using Phosphor - kept for visual cue) */}
+              {/* {isExpanded ? (
                 <FolderOpen size={20} weight="duotone" />
               ) : (
                 <Folder size={20} weight="duotone" />
-              )}
+              )} */}
             </span>
           )}
 
@@ -170,7 +170,8 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
             )}>
               {/* File Type Icon */}
               <span className="inline-block w-5 h-5 flex-shrink-0 text-orange-700">
-                <img src={iconPath} alt="" className="w-full h-full fill-amber-300 text-blue-500" /> {/* Use img tag for SVG */}
+                {/* Use img tag for SVG - file icons don't need isExpanded */}
+                <img src={iconPath} alt="" className="w-full h-full fill-amber-300 text-blue-500" />
               </span>
               {/* Selection Checkbox */}
               {isSelected ? (

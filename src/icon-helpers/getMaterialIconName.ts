@@ -71,8 +71,12 @@ export const getMaterialIconName = (itemName: string, isDir: boolean): string =>
 };
 
 // Function to get the full public path for the icon SVG
-export const getMaterialIconPath = (itemName: string, isDir: boolean): string => {
-  const iconName = getMaterialIconName(itemName, isDir);
+export const getMaterialIconPath = (itemName: string, isDir: boolean, isExpanded?: boolean): string => {
+  let iconName = getMaterialIconName(itemName, isDir);
+  // Append '-open' if it's an expanded directory
+  if (isDir && isExpanded) {
+    iconName += "-open";
+  }
   // Construct the path relative to the public directory
   return `/icons/${iconName}.svg`;
 }; 
