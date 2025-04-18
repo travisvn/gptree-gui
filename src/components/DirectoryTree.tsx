@@ -1,25 +1,8 @@
-import { Folder, FolderOpen, CheckSquare, Square } from '@phosphor-icons/react';
+import { CheckSquare, Square } from '@phosphor-icons/react';
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx'; // Helper for conditional classes
 import { getMaterialIconPath } from '../icon-helpers/getMaterialIconName'; // Import the new helper
-import {
-  DiJavascript1,
-  DiReact,
-  DiHtml5,
-  DiCss3,
-  DiPython,
-  DiRust,
-  DiJava,
-  DiTerminal, // For shell scripts
-  DiMarkdown,
-  DiGit, // For .git related files like .gitignore
-  DiNpm, // For package.json, package-lock.json
-  DiDocker,
-} from 'react-icons/di'; // Devicons
-import { BsFiletypeTsx, BsFiletypeJsx, BsFiletypeYml, BsFileText } from 'react-icons/bs'; // Bootstrap Icons for specific types
-import { VscTerminalCmd, VscTerminalBash, VscTerminalPowershell, VscJson } from 'react-icons/vsc'; // VSCode Icons for terminals & JSON
-import { SiTypescript } from 'react-icons/si'; // Simple Icons for TypeScript
-import { GoFile } from 'react-icons/go'; // Github Octicons for default
+
 
 // Export if needed by getMaterialIconName.ts (not strictly required by current implementation)
 export interface DirectoryItem {

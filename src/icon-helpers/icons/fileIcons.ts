@@ -9,7 +9,7 @@ import { parseByPattern } from '../patterns/patterns';
 export const fileIcons: FileIcons = {
   defaultIcon: { name: 'file' },
   icons: parseByPattern([
-    { name: 'html', fileExtensions: ['htm', 'xhtml', 'html_vm', 'asp'] },
+    { name: 'html', fileExtensions: ['html', 'htm', 'xhtml', 'html_vm', 'asp'] },
     {
       name: 'pug',
       fileExtensions: ['jade', 'pug'],
