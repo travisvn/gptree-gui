@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { writeFile } from '@tauri-apps/plugin-fs';
 import { logger } from '../logging/logger';
 
 /**
