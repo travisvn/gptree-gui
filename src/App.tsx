@@ -310,8 +310,10 @@ function App() {
           setCurrentDirectory(DEFAULT_DIRECTORY);
           await loadDirectory(DEFAULT_DIRECTORY);
         } else {
-          // Option 1: Prompt user immediately (can be intrusive)
-          handleSelectDirectory();
+          // Option 2: Show a message or placeholder state indicating no directory selected
+          // handleSelectDirectory();
+          console.log("No last directory found, waiting for user selection.");
+          // The UI will now handle showing the prompt message based on !currentDirectory
         }
 
         // Option 2: Show a message or placeholder state indicating no directory selected
@@ -466,7 +468,21 @@ function App() {
       {showLoadingIndicator && <div className="absolute inset-0 bg-black/20 z-40 flex items-center justify-center"><p className="text-white text-lg">Loading...</p></div>}
 
       <div className="flex flex-row flex-grow gap-4 p-4 overflow-hidden">
-        {directoryTree ? (
+        {!currentDirectory && !loading && (
+          <div className="flex flex-col items-center justify-center w-full text-center text-[--light-text] p-8">
+            <GptreeLogo className="h-16 w-auto mb-4 text-muted-foreground opacity-50" />
+            <h2 className="text-xl font-semibold mb-2">Welcome to GPTree!</h2>
+            <p className="mb-4">To get started, please select a project directory.</p>
+            <button
+              onClick={handleSelectDirectory}
+              className="primary-button px-6 py-2"
+            >
+              Select Project Directory
+            </button>
+          </div>
+        )}
+
+        {currentDirectory && directoryTree && (
           <div className="output-panel flex flex-col p-3 border rounded-lg shadow-sm bg-light-bg border-border w-1/3 min-w-[300px] max-w-[50vw] overflow-hidden ">
             <h2 className="text-lg font-semibold mb-3 flex-shrink-0">Project Files</h2>
             <div className="flex-grow overflow-hidden mb-3">
@@ -503,83 +519,93 @@ function App() {
               </button>
             </div>
           </div>
-        ) : (
-          <div className="flex items-center justify-center w-1/3 text-[--light-text]">
-            {!loading && !currentDirectory && <p>Select a directory to begin.</p>}
+        )}
+
+        {currentDirectory && !directoryTree && !loading && (
+          <div className="flex items-center justify-center w-1/3 text-error">
+            <p>Error loading directory structure. Please try selecting again.</p>
           </div>
         )}
 
-        <div className="flex flex-col gap-4 w-2/3 overflow-hidden">
-          <div className='flex flex-row justify-between items-center gap-2'>
-            {currentDirectory && (globalConfig || localConfig) && (
-              <div className="config-mode-toggle flex items-center gap-3 flex-shrink-0">
-                <button
-                  onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
-                  disabled={loading || (!globalConfig && configMode === 'global') || (!localConfig && configMode === 'local')}
-                  className={cn(
-                    '',
-                    // "config-mode-button",
-                    // 'hover:bg-black/50 dark:hover:bg-white/10',
-                    configMode === 'local' ? (localConfig ? 'active' : 'inactive') : (globalConfig ? 'active' : 'inactive')
-                  )}
-                  title={configMode === 'global' ? 'Switch to Local Project Config' : 'Switch to Global Config'}
+        {currentDirectory && (
+          <div className="flex flex-col gap-4 w-2/3 overflow-hidden">
+            <div className='flex flex-row justify-between items-center gap-2'>
+              {currentDirectory && (globalConfig || localConfig) && (
+                <div className="config-mode-toggle flex items-center gap-3 flex-shrink-0">
+                  <button
+                    onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
+                    disabled={loading || (!globalConfig && configMode === 'global') || (!localConfig && configMode === 'local')}
+                    className={cn(
+                      '',
+                      // "config-mode-button",
+                      // 'hover:bg-black/50 dark:hover:bg-white/10',
+                      configMode === 'local' ? (localConfig ? 'active' : 'inactive') : (globalConfig ? 'active' : 'inactive')
+                    )}
+                    title={configMode === 'global' ? 'Switch to Local Project Config' : 'Switch to Global Config'}
+                  >
+                    {configMode === 'global' ? (localConfig ? 'Use Local' : 'Local N/A') : (globalConfig ? 'Use Global' : 'Global N/A')} Config
+                  </button>
+                  <span className="text-sm text-[--light-text]">
+                    <strong>Active:</strong> {configMode === 'local' ? 'Local Project' : 'Global'}
+                    {!config && ' (No config loaded)'}
+                  </span>
+                </div>
+              )}
+              <div className={cn(
+                'flex items-center gap-3',
+                DISPLAY_VERSION_RIBBON && 'pr-12',
+                // !currentDirectory && 'hidden'
+              )}>
+                <a
+                  href={GITHUB_LINK}
+                  target="_blank"
+                  className="text-sm text-light-text hover:text-text"
                 >
-                  {configMode === 'global' ? (localConfig ? 'Use Local' : 'Local N/A') : (globalConfig ? 'Use Global' : 'Global N/A')} Config
-                </button>
-                <span className="text-sm text-[--light-text]">
-                  <strong>Active:</strong> {configMode === 'local' ? 'Local Project' : 'Global'}
-                  {!config && ' (No config loaded)'}
-                </span>
+                  <strong>GitHub</strong>
+                </a>
+              </div>
+            </div>
+
+            {config && (
+              <ConfigPanel
+                config={config}
+                onConfigUpdate={async (newConfig) => {
+                  if (!currentDirectory) {
+                    sendErrorMessage("Please select a directory before changing configuration.");
+                    return;
+                  }
+                  await updateConfig(newConfig);
+                }}
+                disabled={loading || !currentDirectory}
+                className="flex-shrink-0"
+              />
+            )}
+
+            {output && config && (
+              <OutputPanel
+                output={output}
+                onCopyToClipboard={handleCopyToClipboard}
+                onOpenFile={handleOpenOutputFile}
+                disabled={loading}
+                outputFileLocally={config.output_file_locally}
+                outputFileName={config.output_file}
+                className="flex-grow flex flex-col min-h-0"
+              />
+            )}
+
+            {!output && config && (
+              <div className="flex-grow flex items-center justify-center text-center p-4 output-panel border rounded-lg shadow-sm bg-light-bg border-border overflow-hidden">
+                <p>Select files and click "Generate Output" to see results here.</p>
               </div>
             )}
-            <div className={cn(
-              'flex items-center gap-3',
-              DISPLAY_VERSION_RIBBON && 'pr-12',
-              // !currentDirectory && 'hidden'
-            )}>
-              <a
-                href={GITHUB_LINK}
-                target="_blank"
-                className="text-sm text-light-text hover:text-text"
-              >
-                <strong>GitHub</strong>
-              </a>
-            </div>
+
+            {!config && !loading && (
+              <div className="flex-grow flex items-center justify-center text-center p-4 output-panel border rounded-lg shadow-sm bg-light-bg border-border overflow-hidden">
+                <p>Loading configuration...</p>
+              </div>
+            )}
           </div>
-
-          {config && (
-            <ConfigPanel
-              config={config}
-              onConfigUpdate={async (newConfig) => {
-                if (!currentDirectory) {
-                  sendErrorMessage("Please select a directory before changing configuration.");
-                  return;
-                }
-                await updateConfig(newConfig);
-              }}
-              disabled={loading || !currentDirectory}
-              className="flex-shrink-0"
-            />
-          )}
-
-          {output && config && (
-            <OutputPanel
-              output={output}
-              onCopyToClipboard={handleCopyToClipboard}
-              onOpenFile={handleOpenOutputFile}
-              disabled={loading}
-              outputFileLocally={config.output_file_locally}
-              outputFileName={config.output_file}
-              className="flex-grow flex flex-col min-h-0"
-            />
-          )}
-
-          {!output && config && (
-            <div className="flex-grow flex items-center justify-center text-center p-4 output-panel border rounded-lg shadow-sm bg-light-bg border-border overflow-hidden">
-              <p>Select files and click "Generate Output" to see results here.</p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       <Tooltip id="app-tooltip" className="react-tooltip" />
