@@ -304,10 +304,15 @@ function App() {
       const lastDirLoaded = await checkLastDirectory();
       // Only prompt if no last directory AND no current directory set
       if (!lastDirLoaded && !currentDirectory) {
-        // Option 1: Prompt user immediately (can be intrusive)
-        // handleSelectDirectory();
-        setCurrentDirectory(DEFAULT_DIRECTORY);
-        await loadDirectory(DEFAULT_DIRECTORY);
+
+        if (import.meta.env.DEV) {
+          console.log("Development mode, setting default directory.");
+          setCurrentDirectory(DEFAULT_DIRECTORY);
+          await loadDirectory(DEFAULT_DIRECTORY);
+        } else {
+          // Option 1: Prompt user immediately (can be intrusive)
+          handleSelectDirectory();
+        }
 
         // Option 2: Show a message or placeholder state indicating no directory selected
         console.log("No last directory found, waiting for user selection.");

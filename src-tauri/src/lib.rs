@@ -223,9 +223,16 @@ async fn open_output_file(
     app: tauri::AppHandle,
     path: String,
 ) -> Result<CommandResult<bool>, String> {
+    // Log the path we are trying to open
+    println!("[GPTree] Attempting to open path: {}", path);
+
     match app.opener().open_path(&path, None::<&str>) {
         Ok(_) => Ok(CommandResult::success(true)),
-        Err(e) => Ok(CommandResult::error(format!("Failed to open file: {}", e))),
+        Err(e) => {
+            // Log the error as well
+            eprintln!("[GPTree] Failed to open path '{}': {}", path, e);
+            Ok(CommandResult::error(format!("Failed to open file: {}", e)))
+        }
     }
 }
 
