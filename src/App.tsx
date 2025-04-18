@@ -11,6 +11,8 @@ import { HEADER_LINK, GITHUB_LINK, VERSION_NAME, DISPLAY_VERSION_RIBBON } from '
 import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme, ThemeProvider } from './components/ThemeProvider';
+import { truncatePathStart } from './lib/utils';
+import { useWindowSize } from './hooks/useWindowSize';
 
 const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
 
@@ -36,6 +38,9 @@ function App() {
   const [showLoadingIndicator, setShowLoadingIndicator] = useState<boolean>(false);
   const loadingTimerRef = useRef<number | null>(null); // Use number for browser setTimeout ID
   const LOADING_DELAY = 300; // milliseconds
+
+  // Use the custom hook to get debounced window size
+  const { width: windowWidth } = useWindowSize(); // Default debounce is 200ms
 
   // Clear error/success messages
   const clearMessages = () => {
@@ -328,6 +333,20 @@ function App() {
     };
   }, []); // Run only once on mount
 
+  // Calculate dynamic max length based on window width from the hook
+  const getDynamicMaxLength = (width: number) => {
+    if (width === 0) return 45; // Return default if width is initially 0
+    if (width < 768) { // Small screens (e.g., mobile)
+      return 35;
+    } else if (width < 1000) { // Medium screens (e.g., tablets, smaller laptops)
+      return 45;
+    } else { // Large screens
+      return 60;
+    }
+  };
+
+  const dynamicMaxLength = getDynamicMaxLength(windowWidth);
+
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-background text-text">
       <header className="flex items-center justify-between flex-shrink-0 px-4 py-2 shadow-md bg-light-bg text-text">
@@ -344,7 +363,7 @@ function App() {
           <div className="flex-1 text-center text-sm truncate px-4"
             data-tooltip-id="app-tooltip"
             data-tooltip-content={currentDirectory}>
-            <span className="font-medium mr-1">Current:</span> {currentDirectory}
+            <span className="font-medium mr-1">Current:</span> {truncatePathStart(currentDirectory, dynamicMaxLength)}
           </div>
         )}
 
