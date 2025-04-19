@@ -1,8 +1,8 @@
 @import './base.css';
 @import 'tailwindcss' important;
-@import 'tw-animate-css';
+/* @import 'tw-animate-css'; */
 
-/* @custom-variant dark (&:is(.dark *)); */
+@custom-variant dark (&:is(.dark *));
 /* @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *)); */
 
 /* https://tailwindcss.com/docs/theme#theme-variable-namespaces */

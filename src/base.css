@@ -94,7 +94,7 @@ body,
 }
 
 input,
-button {
+.button {
   color: var(--input-color);
   background-color: var(--input-bg);
   border: 1px solid var(--border-color);
@@ -102,18 +102,18 @@ button {
   @apply transition-colors duration-200;
 }
 
-button.primary-button {
+.button.primary-button {
   background-color: var(--primary-color);
   color: white;
   border: none;
 }
 
-button.primary-button:hover:not(:disabled) {
+.button.primary-button:hover:not(:disabled) {
   background-color: var(--primary-hover);
   @apply transition-colors duration-200;
 }
 
-button:disabled {
+.button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -240,7 +240,7 @@ h1 {
 }
 
 input,
-button {
+.button {
   border-radius: 8px;
   border: 1px solid transparent;
   /* padding: 0.6em 1.2em; */
@@ -251,20 +251,20 @@ button {
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
-button {
+.button {
   cursor: pointer;
 }
 
-button:hover {
+.button:hover {
   border-color: #396cd8;
 }
-button:active {
+.button:active {
   border-color: #396cd8;
   background-color: #e8e8e8;
 }
 
 input,
-button {
+.button {
   outline: none;
 }
 
@@ -282,7 +282,7 @@ body {
   line-height: 1.6;
 }
 
-button {
+.button {
   cursor: pointer;
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
@@ -293,7 +293,7 @@ button {
   opacity: 0.8;
 }
 
-button:hover:not(:disabled) {
+.button:hover:not(:disabled) {
   background-color: var(--input-bg);
   opacity: 1;
   @apply transition-colors duration-200;
@@ -620,7 +620,7 @@ label {
 }
 
 /* Base button styling */
-button {
+.button {
   border-radius: 0.375rem;
   padding: 0.5rem 1rem;
   /* font-size: 0.875rem; */
@@ -632,7 +632,7 @@ button {
   /* transition: background-color 0.2s, border-color 0.2s, opacity 0.2s; */
 }
 
-button:hover:not(:disabled) {
+.button:hover:not(:disabled) {
   border-color: var(--primary-color);
   opacity: 0.9;
 }
@@ -745,7 +745,7 @@ input[type='checkbox']:disabled + label {
 } */
 
 input:focus-visible,
-button:focus-visible,
+.button:focus-visible,
 input[type='checkbox']:focus-visible {
   outline-offset: 0px;
 }

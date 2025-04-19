@@ -37,6 +37,7 @@ function App() {
   const [globalConfig, setGlobalConfig] = useState<Config | null>(null);
   const [localConfig, setLocalConfig] = useState<Config | null>(null);
   const [configMode, setConfigMode] = useState<'global' | 'local'>('global');
+  const [isConfigPanelDirty, setIsConfigPanelDirty] = useState<boolean>(false); // State for config panel dirty status
 
   const [pendingClipboardCopy, setPendingClipboardCopy] = useState(false);
 
@@ -136,6 +137,8 @@ function App() {
       if (result.success && result.data) {
         setGlobalConfig(result.data.global || null);
         setLocalConfig(result.data.local || null);
+
+        // TODO: Add logic here to check APPLICATION settings for which to default to
         // Default to global config or local if global doesn't exist
         const initialMode = result.data.global ? 'global' : 'local';
         setConfigMode(initialMode);
@@ -188,8 +191,8 @@ function App() {
     }
   };
 
-  // Update configuration
-  const updateConfig = async (newConfig: Config) => {
+  // Update configuration - This now handles the saving triggered by ConfigPanel
+  const handleSaveConfig = async (newConfig: Config) => {
     try {
       startLoading();
       clearMessages();
@@ -200,20 +203,24 @@ function App() {
       );
 
       if (result.success) {
-        setConfig(newConfig);
-        // Also update the correct config in state
+        setConfig(newConfig); // Update active config
+        // Also update the correct stored config state
         if (configMode === 'local') {
           setLocalConfig(newConfig);
         } else {
           setGlobalConfig(newConfig);
         }
+        sendSuccessMessage("Configuration saved", 2000); // Optional success message
       } else if (result.error) {
-        // AppError object might be serialized as a string, or could be just a string
         const errorMsg = typeof result.error === 'object' && result.error !== null ? JSON.stringify(result.error) : result.error;
-        setError(`Error updating config: ${errorMsg}`);
+        sendErrorMessage(`Error saving config: ${errorMsg}`);
+        // Re-throw to signal ConfigPanel that save failed
+        throw new Error(`Error saving config: ${errorMsg}`);
       }
     } catch (err) {
-      setError(`Error updating configuration: ${err}`);
+      sendErrorMessage(`Error saving configuration: ${err}`);
+      // Re-throw to signal ConfigPanel that save failed
+      throw new Error(`Error saving configuration: ${err}`);
     } finally {
       stopLoading();
     }
@@ -304,8 +311,11 @@ function App() {
       const newActiveConfig = mode === 'local' ? (localConfig || globalConfig) : (globalConfig || localConfig);
       setConfig(newActiveConfig);
       if (!newActiveConfig) {
-        sendErrorMessage("Selected config type is not available.");
+        // Don't send error message here, the panel will show loading/unavailable state
+        // sendErrorMessage("Selected config type is not available.");
       }
+      // Switching mode should reset any unsaved changes in the panel
+      // The ConfigPanel's useEffect hook handles this based on the 'config' prop changing.
     } catch (err) {
       sendErrorMessage(`Error switching config mode: ${err}`);
     } finally {
@@ -397,14 +407,14 @@ function App() {
           <button
             onClick={toggleTheme}
             title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-            className="p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10"
+            className="button p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10"
           >
             {theme === "light" ? <Moon weight="fill" /> : <Sun weight="fill" />}
           </button>
           <button
             onClick={handleSelectDirectory}
             disabled={loading}
-            className="text-sm px-3 py-1.5"
+            className="button text-sm px-3 py-1.5"
           >
             Select Directory
           </button>
@@ -494,7 +504,7 @@ function App() {
             <p className="mb-4">To get started, please select a project directory.</p>
             <button
               onClick={handleSelectDirectory}
-              className="primary-button px-6 py-2"
+              className="button primary-button px-6 py-2"
             >
               Select Project Directory
             </button>
@@ -507,7 +517,7 @@ function App() {
               <h2 className="text-lg/none font-semibold flex-shrink-0">Project Files</h2>
               <button
                 onClick={handleRefreshDirectoryTree}
-                className="p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10 m-0"
+                className="button p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10 m-0"
                 data-tooltip-id="app-tooltip"
                 data-tooltip-content="Refresh directory tree"
               >
@@ -533,7 +543,7 @@ function App() {
                       setSelectedFiles(absolutePaths);
                     }}
                     disabled={loading}
-                    className="text-xs px-2 py-1"
+                    className="button text-xs px-2 py-1"
                   >
                     Use Previous Selection
                   </button>
@@ -542,7 +552,7 @@ function App() {
               <button
                 onClick={handleGenerateOutput}
                 disabled={loading || selectedFiles.length === 0}
-                className="primary-button w-full"
+                className="button primary-button w-full"
               >
                 Generate Output
               </button>
@@ -563,14 +573,24 @@ function App() {
                 <div className="config-mode-toggle flex items-center gap-3 flex-shrink-0">
                   <button
                     onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
-                    disabled={loading || (!globalConfig && configMode === 'global') || (!localConfig && configMode === 'local')}
+                    disabled={
+                      loading ||
+                      isConfigPanelDirty || // Disable if config panel has unsaved changes
+                      (configMode === 'global' && !localConfig) || // Disable switching TO local if local doesn't exist
+                      (configMode === 'local' && !globalConfig) // Disable switching TO global if global doesn't exist
+                    }
                     className={cn(
-                      '',
+                      'button',
                       // "config-mode-button",
                       // 'hover:bg-black/50 dark:hover:bg-white/10',
-                      configMode === 'local' ? (localConfig ? 'active' : 'inactive') : (globalConfig ? 'active' : 'inactive')
+                      (configMode === 'local' ? localConfig : globalConfig) ? 'active' : 'inactive' // Simplified check for active
                     )}
-                    title={configMode === 'global' ? 'Switch to Local Project Config' : 'Switch to Global Config'}
+                    title={
+                      isConfigPanelDirty ? "Save or reset config changes before switching" :
+                        configMode === 'global' ?
+                          (localConfig ? 'Switch to Local Project Config' : 'Local config not available') :
+                          (globalConfig ? 'Switch to Global Config' : 'Global config not available')
+                    }
                   >
                     {configMode === 'global' ? (localConfig ? 'Use Local' : 'Local N/A') : (globalConfig ? 'Use Global' : 'Global N/A')} Config
                   </button>
@@ -597,14 +617,9 @@ function App() {
 
             {config && (
               <ConfigPanel
-                config={config}
-                onConfigUpdate={async (newConfig) => {
-                  if (!currentDirectory) {
-                    sendErrorMessage("Please select a directory before changing configuration.");
-                    return;
-                  }
-                  await updateConfig(newConfig);
-                }}
+                config={config} // Pass the currently active config
+                onConfigUpdate={handleSaveConfig} // Pass the save handler
+                onDirtyChange={setIsConfigPanelDirty} // Pass the dirty state setter
                 disabled={loading || !currentDirectory}
                 className="flex-shrink-0"
               />
@@ -638,7 +653,7 @@ function App() {
         )}
       </div>
 
-      <Tooltip id="app-tooltip" className="react-tooltip" />
+      <Tooltip id="app-tooltip" className="react-tooltip z-[51]" />
     </div>
   );
 }

@@ -131,7 +131,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         <button
           onClick={handleCopy}
           disabled={disabled}
-          className="primary-button flex items-center gap-1.5 duration-200 transition-colors"
+          className="button primary-button flex items-center gap-1.5 duration-200 transition-colors"
         >
           <Copy size={16} /> {copied ? 'Copied!' : 'Copy'}
         </button>
@@ -144,7 +144,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
           <button
             onClick={onOpenFile}
             disabled={isOpenDisabled}
-            className="flex items-center gap-1.5 disabled:cursor-not-allowed duration-200 transition-colors"
+            className="button flex items-center gap-1.5 disabled:cursor-not-allowed duration-200 transition-colors"
           >
             <FileText size={16} /> Open File
           </button>
@@ -153,7 +153,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         <button
           onClick={handleDownload}
           disabled={disabled || !!downloadStatus}
-          className="flex items-center gap-1.5 justify-center duration-200 transition-colors"
+          className="button flex items-center gap-1.5 justify-center duration-200 transition-colors"
         >
           <DownloadSimple size={16} /> {downloadStatus || 'Download'}
         </button>
@@ -161,7 +161,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         <button
           onClick={() => setShowPreview(!showPreview)}
           disabled={disabled}
-          className="flex items-center gap-1.5 justify-center duration-200 transition-colors"
+          className="button flex items-center gap-1.5 justify-center duration-200 transition-colors"
         >
           {showPreview ? <EyeSlash size={16} /> : <Eye size={16} />} {showPreview ? 'Hide' : 'Show'} Preview
         </button>

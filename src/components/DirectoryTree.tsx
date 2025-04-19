@@ -221,8 +221,8 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({ tree, onFileSelection, se
           </label>
         </div>
         <div className=" flex gap-2">
-          <button onClick={expandAll} className="text-xs px-2 py-1">Expand</button>
-          <button onClick={collapseAll} className="text-xs px-2 py-1">Collapse</button>
+          <button onClick={expandAll} className="button text-xs px-2 py-1">Expand</button>
+          <button onClick={collapseAll} className="button text-xs px-2 py-1">Collapse</button>
         </div>
       </div>
 
