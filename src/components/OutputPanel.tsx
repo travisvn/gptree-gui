@@ -6,7 +6,6 @@ import { useSignalListener } from '../hooks/useSignalListener';
 import { useAtom, useAtomValue } from 'jotai';
 import { debugEnabledAtom, logsAtom } from '../lib/store/atoms';
 import { SignalPayload } from '../hooks/signals';
-import { ENABLE_DEBUG } from '../lib/constants';
 
 interface OutputPanelProps {
   output: OutputContent;
