@@ -1,7 +1,9 @@
 use crate::fs::{
     add_line_numbers, estimate_tokens, generate_tree_structure, read_file_content, save_to_file,
 };
-use crate::models::{AppError, Config, OutputContent, SAFE_MODE_MAX_FILES, SAFE_MODE_MAX_LENGTH};
+use crate::models::{
+    AppError, Config, FileDetail, OutputContent, SAFE_MODE_MAX_FILES, SAFE_MODE_MAX_LENGTH,
+};
 use std::path::{Path, PathBuf};
 
 /// Combine the file contents with the directory structure
@@ -11,6 +13,7 @@ pub fn combine_files_with_structure(
     selected_files: &[String],
 ) -> Result<OutputContent, AppError> {
     let mut combined_content = Vec::new();
+    let mut file_details = Vec::new();
 
     // Generate tree structure
     let tree_structure = generate_tree_structure(
@@ -21,7 +24,7 @@ pub fn combine_files_with_structure(
     )?;
 
     combined_content.push("# Project Directory Structure:".to_string());
-    combined_content.push(tree_structure.tree_text);
+    combined_content.push(tree_structure.tree_text.clone());
     combined_content.push("\n# BEGIN FILE CONTENTS".to_string());
 
     // Safe mode checks
@@ -50,11 +53,16 @@ pub fn combine_files_with_structure(
     }
 
     // Combine contents of selected files
+    let mut total_tokens = 0;
     for file_path in selected_files {
         let path = PathBuf::from(file_path);
 
-        // Skip if path doesn't exist
+        // Skip if path doesn't exist or is not a file
         if !path.exists() || !path.is_file() {
+            eprintln!(
+                "Warning: Skipping non-existent or non-file path: {}",
+                file_path
+            );
             continue;
         }
 
@@ -65,48 +73,83 @@ pub fn combine_files_with_structure(
                     content = add_line_numbers(&content);
                 }
 
+                // Estimate tokens for this file
+                let file_tokens = estimate_tokens(&content);
+                total_tokens += file_tokens;
+
                 // Convert absolute path to relative path for display
                 let rel_path = match path.strip_prefix(root_dir) {
                     Ok(rel) => rel.to_string_lossy().to_string(),
-                    Err(_) => path.to_string_lossy().to_string(),
+                    Err(_) => path.to_string_lossy().to_string(), // Fallback if stripping fails
                 };
+
+                file_details.push(FileDetail {
+                    path: rel_path.clone(),
+                    tokens: file_tokens,
+                });
 
                 combined_content.push(format!("\n# File: {}\n", rel_path));
                 combined_content.push(content);
-                combined_content.push("\n# END FILE CONTENTS\n".to_string());
+                // combined_content.push("\n# END FILE CONTENTS\n".to_string()); // Removed redundant end marker
             }
             Err(e) => {
                 eprintln!("Warning: Could not read file {}: {}", file_path, e);
+                // Optionally add an error detail to file_details?
                 continue;
             }
         }
     }
 
     let combined_content_str = combined_content.join("\n");
-    let estimated_tokens = estimate_tokens(&combined_content_str);
+    // Use the sum of file tokens as the estimate
+    let estimated_tokens = total_tokens;
 
     Ok(OutputContent {
+        tree_structure: tree_structure.tree_text,
         combined_content: combined_content_str,
-        selected_files: selected_files.to_vec(),
-        estimated_tokens,
+        file_details,
+        token_estimate: estimated_tokens,
+        saved_path: None, // Will be filled after saving
     })
 }
 
 /// Save the output and copy to clipboard if requested
+/// Returns the absolute path where the file was saved.
 pub fn process_output(
     output_content: &OutputContent,
     config: &Config,
-    root_dir: &Path,
-) -> Result<PathBuf, AppError> {
-    // Determine output file path
+    root_dir: &Path, // Ensure this is the absolute path to the project
+) -> Result<String, AppError> {
+    // Determine absolute output file path
     let output_file_path = if config.output_file_locally {
-        PathBuf::from(&config.output_file)
-    } else {
+        // Save relative to the project directory
         root_dir.join(&config.output_file)
+    } else {
+        // Save to user's Documents directory
+        if let Some(docs_dir) = dirs::document_dir() {
+            docs_dir.join(&config.output_file)
+        } else {
+            // Fallback: Save relative to the project dir if Documents isn't available
+            eprintln!(
+                "Warning: Could not find Documents directory. Saving to project directory instead."
+            );
+            root_dir.join(&config.output_file)
+        }
     };
+
+    // Ensure parent directory exists
+    if let Some(parent) = output_file_path.parent() {
+        if !parent.exists() {
+            std::fs::create_dir_all(parent)?;
+        }
+    }
+
+    // Log the path we are saving to
+    println!("[GPTree] Saving output to: {:?}", output_file_path);
 
     // Save to file
     save_to_file(&output_file_path, &output_content.combined_content)?;
 
-    Ok(output_file_path)
+    // Return the absolute path as a string
+    Ok(output_file_path.to_string_lossy().to_string())
 }

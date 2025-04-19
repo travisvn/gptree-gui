@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { Copy, FileText, DownloadSimple, Eye, EyeSlash } from '@phosphor-icons/react';
-
-interface OutputContent {
-  combined_content: string;
-  selected_files: string[];
-  estimated_tokens: number;
-}
+import { OutputContent } from '../lib/types';
+import { useSignalListener } from '../hooks/useSignalListener';
+import { useAtom, useAtomValue } from 'jotai';
+import { debugEnabledAtom, logsAtom } from '../lib/store/atoms';
+import { SignalPayload } from '../hooks/signals';
+import { ENABLE_DEBUG } from '../lib/constants';
 
 interface OutputPanelProps {
   output: OutputContent;
@@ -37,6 +37,10 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
+
+  const [logs, setLogs] = useAtom(logsAtom);
+  const debugEnabledDynamically = useAtomValue(debugEnabledAtom);
+  // const [logs, setLogs] = useState<SignalLog[]>([]);
 
   // Determine if the button should be disabled and why
   const isOpenDisabled = disabled || !outputFileLocally || !outputFileName;
@@ -105,13 +109,20 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     setTimeout(() => setCopied(false), 1500);
   };
 
+  useSignalListener('log', (data: SignalPayload<'log'>) => {
+    // console.log('log', JSON.stringify(data, null, 2));
+    if (data) {
+      setLogs((prevLogs) => [...prevLogs, data]);
+    }
+  });
+
   return (
-    <div className={`output-panel flex flex-col p-3 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] overflow-hidden ${className}`}>
+    <div className={`output-panel flex flex-col p-3 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] overflow-hidden ${className} relative`}>
       <div className="output-header flex justify-between items-center mb-3 flex-shrink-0">
         <h3 className="text-base font-semibold m-0">Output</h3>
         <div className="output-stats flex gap-3 text-sm text-[--light-text]">
-          <span><strong>Files:</strong> {output.selected_files.length}</span>
-          <span><strong>Tokens:</strong> ~{output.estimated_tokens.toLocaleString()}</span>
+          <span><strong>Files:</strong> {output.file_details.length}</span>
+          <span><strong>Tokens:</strong> ~{output.token_estimate.toLocaleString()}</span>
         </div>
       </div>
 
@@ -161,6 +172,19 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
           <pre className="flex-grow overflow-y-auto p-2 rounded bg-[--background] text-xs leading-relaxed">
             {getPreviewContent()}
           </pre>
+        </div>
+      )}
+
+      {debugEnabledDynamically && (
+        <div className='absolute bottom-0 left-0 right-0 w-full h-40 overflow-y-auto bg-black/20 dark:bg-white/20 backdrop-blur-sm rounded-md p-2 flex flex-col z-20'>
+          <div className='flex flex-col gap-1'>
+            {logs && logs.length > 0 && logs.map((log, index) => (
+              <div key={index} className='text-xs'>
+                {/* [{logs.length - index}] - {log?.message} */}
+                [{index + 1}] - {log?.message}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

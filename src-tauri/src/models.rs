@@ -67,17 +67,25 @@ pub struct DirectoryItem {
     pub children: Vec<DirectoryItem>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FileDetail {
+    pub path: String,
+    pub tokens: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TreeStructure {
     pub tree_text: String,
     pub file_list: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct OutputContent {
+    pub tree_structure: String,
     pub combined_content: String,
-    pub selected_files: Vec<String>,
-    pub estimated_tokens: usize,
+    pub file_details: Vec<FileDetail>,
+    pub token_estimate: usize,
+    pub saved_path: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]

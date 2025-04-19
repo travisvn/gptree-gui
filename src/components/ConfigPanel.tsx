@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { CaretDown, CaretRight } from '@phosphor-icons/react';
+import { Bug, CaretDown, CaretRight } from '@phosphor-icons/react';
+import { useAtom } from 'jotai';
+import { debugEnabledAtom } from '../lib/store/atoms';
 
 interface Config {
   version: number;
@@ -26,6 +28,7 @@ interface ConfigPanelProps {
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disabled, className = "" }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [debugEnabled, setDebugEnabled] = useAtom(debugEnabledAtom);
 
   const handleChange = (field: keyof Config, value: any) => {
     const newConfig = { ...config, [field]: value };
@@ -55,8 +58,26 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
 
       <div
         className={`config-content overflow-y-auto transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[50vh] opacity-100 p-3 pt-2' : 'max-h-0 opacity-0 p-0'
-          }`}
+          } relative`}
       >
+        <div className='absolute top-0 right-0 p-2'>
+          <span
+            data-tooltip-id={"app-tooltip"}
+            data-tooltip-content={debugEnabled ? 'Disable debug mode' : 'Enable debug mode'}
+            className={debugEnabled ? 'cursor-not-allowed' : ''}
+          >
+            <button
+              className='bg-error text-white px-2 py-1 rounded-md'
+
+              onClick={() => {
+                // sendSignal('log', { message: 'test', level: 'info' });
+                setDebugEnabled(prev => !prev);
+              }}
+            >
+              <Bug size={18} />
+            </button>
+          </span>
+        </div>
         <div className="config-section mb-4 pb-2">
           <h4 className="text-sm font-medium text-[--light-text] mb-2">File Selection</h4>
           <div className="config-option flex items-center gap-2 mb-2">

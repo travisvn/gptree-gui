@@ -180,17 +180,35 @@ async fn generate_output(
 
     // Process the files
     match processor::combine_files_with_structure(&current_dir, &config, &selected_files) {
-        Ok(output) => {
+        Ok(mut output) => {
             // Save the list of selected files if configured
             if config.store_files_chosen {
-                let config_path = current_dir.join(".gptree_config");
-                let _ = config::update_previous_files(&config_path, &selected_files, &current_dir);
+                // Ensure config path exists for local saving
+                if config::load_or_create_project_config(&current_dir).is_ok() {
+                    let config_path = current_dir.join(".gptree_config");
+                    if let Err(e) =
+                        config::update_previous_files(&config_path, &selected_files, &current_dir)
+                    {
+                        eprintln!("Warning: Failed to update previous files in config: {}", e);
+                    }
+                } else {
+                    eprintln!(
+                        "Warning: Could not load or create project config to save previous files."
+                    );
+                }
             }
 
-            // Process the output (save to file)
+            // Process the output (save to file) and get the saved path
             match processor::process_output(&output, &config, &current_dir) {
-                Ok(_) => {}
-                Err(e) => eprintln!("Warning: Failed to save output: {}", e),
+                Ok(saved_path) => {
+                    // Store the absolute path in the output object
+                    output.saved_path = Some(saved_path);
+                }
+                Err(e) => {
+                    // Log the error but don't prevent returning the content
+                    eprintln!("Warning: Failed to save output file: {}", e);
+                    output.saved_path = None; // Indicate that saving failed
+                }
             }
 
             Ok(CommandResult::success(output))

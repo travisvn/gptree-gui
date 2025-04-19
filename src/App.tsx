@@ -11,8 +11,9 @@ import { HEADER_LINK, GITHUB_LINK, VERSION_NAME, DISPLAY_VERSION_RIBBON } from '
 import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme, ThemeProvider } from './components/ThemeProvider';
-import { truncatePathStart } from './lib/utils';
+import { truncatePathStart } from './lib/index';
 import { useWindowSize } from './hooks/useWindowSize';
+import { sendSignal } from './hooks/signalEmitter';
 
 const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
 
@@ -26,6 +27,11 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [transientSuccess, setTransientSuccess] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
+
+  function log(message: string, level: 'info' | 'warn' | 'error' | 'debug' | string = 'info') {
+    console.log('log', message, level);
+    sendSignal('log', { message: message, level: level });
+  }
 
   // New state for config override
   const [globalConfig, setGlobalConfig] = useState<Config | null>(null);
@@ -264,16 +270,25 @@ function App() {
 
   // Open output file
   const handleOpenOutputFile = async () => {
-    if (!config) return;
+    log("Opening output file", 'debug');
+    log(output?.saved_path ?? "No output file path", 'debug');
+    if (!output || !output.saved_path) {
+      log("Output file path is not available. Was the output generated and saved successfully?", 'debug');
+      sendErrorMessage("Output file path is not available. Was the output generated and saved successfully?");
+      return;
+    }
     clearMessages();
 
-    const outputPath = config.output_file_locally
-      ? config.output_file
-      : `${currentDirectory}/${config.output_file}`;
+    const outputPath = output.saved_path; // Use the absolute path from the backend
+    log("Opening output file", 'debug');
+    log(outputPath, 'debug');
 
     try {
+      log("Invoking open_output_file", 'debug');
       await invoke("open_output_file", { path: outputPath });
     } catch (err) {
+      log("Error opening file", 'debug');
+      log(err?.toString() ?? "Unknown error", 'debug');
       sendErrorMessage(`Error opening file '${outputPath}': ${err}`);
     }
   };

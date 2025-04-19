@@ -24,11 +24,18 @@ export interface Config {
 }
 
 export interface OutputContent {
+  tree_structure: string;
   combined_content: string;
-  selected_files: string[];
-  estimated_tokens: number;
+  file_details: FileDetail[];
+  token_estimate: number;
+  saved_path?: string | null;
 }
 
 export interface AppError {
   message: string;
+}
+
+export interface FileDetail {
+  path: string;
+  tokens: number;
 }
