@@ -1,21 +1,37 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
+  "description": "Default capabilities for the application.",
   "windows": ["main"],
   "permissions": [
-    "core:default",
-    "opener:default",
-    "fs:default",
-    "dialog:default",
-    "shell:default",
-    {
-      "identifier": "opener:allow-open-path",
-      "allow": [
-        {
-          "path": "*"
-        }
-      ]
-    }
+    "core:path:default",
+    "core:event:default",
+    "core:window:default",
+    "core:app:default",
+    "core:image:default",
+    "core:resources:default",
+    "core:menu:default",
+    "core:tray:default",
+    "shell:allow-open",
+    "shell:allow-execute",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "dialog:allow-message",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-read-dir",
+    "fs:allow-copy-file",
+    "fs:allow-mkdir",
+    "fs:allow-remove",
+    "fs:allow-rename",
+    "fs:allow-exists",
+    "fs:scope-appconfig-recursive",
+    "fs:scope-appdata-recursive",
+    "fs:scope-applocaldata-recursive",
+    "fs:scope-appcache-recursive",
+    "fs:scope-applog-recursive",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
+    "opener:allow-open-path"
   ]
 }
