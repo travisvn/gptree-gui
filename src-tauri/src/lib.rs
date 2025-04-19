@@ -200,9 +200,9 @@ async fn generate_output(
 
             // Process the output (save to file) and get the saved path
             match processor::process_output(&output, &config, &current_dir) {
-                Ok(saved_path) => {
-                    // Store the absolute path in the output object
-                    output.saved_path = Some(saved_path);
+                Ok(saved_path_option) => {
+                    // Store the absolute path (or None) in the output object
+                    output.saved_path = saved_path_option;
                 }
                 Err(e) => {
                     // Log the error but don't prevent returning the content

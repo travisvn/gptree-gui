@@ -604,6 +604,7 @@ function App() {
                 disabled={loading}
                 outputFileLocally={config.output_file_locally}
                 outputFileName={config.output_file}
+                saveOutputFile={config.save_output_file}
                 className="flex-grow flex flex-col min-h-0"
               />
             )}

@@ -90,6 +90,9 @@ fn load_config(config_path: &Path) -> Result<Config, AppError> {
                 "outputFile" => {
                     config.output_file = value.to_string();
                 }
+                "saveOutputFile" => {
+                    config.save_output_file = value == "true";
+                }
                 "outputFileLocally" => {
                     config.output_file_locally = value == "true";
                 }
@@ -157,6 +160,8 @@ pub fn save_config(config_path: &Path, config: &Config, is_global: bool) -> Resu
     )?;
     writeln!(file, "# Output file name")?;
     writeln!(file, "outputFile: {}", config.output_file)?;
+    writeln!(file, "# Whether to save the output file at all")?;
+    writeln!(file, "saveOutputFile: {}", config.save_output_file)?;
     writeln!(
         file,
         "# Whether to output the file locally or relative to the project directory"

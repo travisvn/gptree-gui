@@ -9,6 +9,7 @@ interface Config {
   include_file_types: string;
   exclude_file_types: string[];
   output_file: string;
+  save_output_file: boolean;
   output_file_locally: boolean;
   copy_to_clipboard: boolean;
   safe_mode: boolean;
@@ -161,13 +162,24 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigUpdate, disab
           <div className="config-option flex items-center gap-2 mb-2">
             <input
               type="checkbox"
-              id="output-file-locally"
-              checked={config.output_file_locally}
-              onChange={(e) => handleChange('output_file_locally', e.target.checked)}
+              id="save-output-file"
+              checked={config.save_output_file}
+              onChange={(e) => handleChange('save_output_file', e.target.checked)}
               disabled={disabled}
               className="cursor-pointer"
             />
-            <label htmlFor="output-file-locally" className="cursor-pointer">Save output in current working directory</label>
+            <label htmlFor="save-output-file" className="cursor-pointer">Save output file</label>
+          </div>
+          <div className="config-option flex items-center gap-2 mb-2">
+            <input
+              type="checkbox"
+              id="output-file-locally"
+              checked={config.output_file_locally}
+              onChange={(e) => handleChange('output_file_locally', e.target.checked)}
+              disabled={disabled || !config.save_output_file}
+              className="cursor-pointer disabled:opacity-50"
+            />
+            <label htmlFor="output-file-locally" className={`cursor-pointer ${!config.save_output_file ? 'opacity-50' : ''}`}>Save output in current working directory</label>
           </div>
           <div className="config-option flex items-center gap-2 mb-2">
             <input

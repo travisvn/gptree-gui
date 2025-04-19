@@ -114,12 +114,17 @@ pub fn combine_files_with_structure(
 }
 
 /// Save the output and copy to clipboard if requested
-/// Returns the absolute path where the file was saved.
+/// Returns the absolute path where the file was saved, or None if saving was disabled.
 pub fn process_output(
     output_content: &OutputContent,
     config: &Config,
     root_dir: &Path, // Ensure this is the absolute path to the project
-) -> Result<String, AppError> {
+) -> Result<Option<String>, AppError> {
+    // Check if saving is disabled
+    if !config.save_output_file {
+        return Ok(None); // Return None if saving is disabled
+    }
+
     // Determine absolute output file path
     let output_file_path = if config.output_file_locally {
         // Save relative to the project directory
@@ -150,6 +155,6 @@ pub fn process_output(
     // Save to file
     save_to_file(&output_file_path, &output_content.combined_content)?;
 
-    // Return the absolute path as a string
-    Ok(output_file_path.to_string_lossy().to_string())
+    // Return the absolute path as a string wrapped in Some
+    Ok(Some(output_file_path.to_string_lossy().to_string())) // Wrap in Some()
 }

@@ -13,6 +13,7 @@ interface OutputPanelProps {
   onOpenFile: () => void;
   disabled: boolean;
   className?: string;
+  saveOutputFile: boolean;
   outputFileLocally: boolean;
   outputFileName: string;
 }
@@ -30,6 +31,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   onOpenFile,
   disabled,
   className = "",
+  saveOutputFile,
   outputFileLocally,
   outputFileName
 }) => {
@@ -42,11 +44,11 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   // const [logs, setLogs] = useState<SignalLog[]>([]);
 
   // Determine if the button should be disabled and why
-  const isOpenDisabled = disabled || !outputFileLocally || !outputFileName;
+  const isOpenDisabled = disabled || ((!saveOutputFile || !outputFileLocally) && !outputFileName);
   let openButtonTooltip = "";
   if (isOpenDisabled && !disabled) {
-    if (!outputFileLocally) {
-      openButtonTooltip = "Output file saving is disabled in config.";
+    if (!saveOutputFile || !outputFileLocally) {
+      openButtonTooltip = "Saving output file is disabled in config.";
     } else if (!outputFileName) {
       openButtonTooltip = "Output file name is not configured.";
     }
