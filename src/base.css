@@ -499,7 +499,7 @@ label {
 
 /* Output Panel */
 .output-panel {
-  padding: 1rem;
+  /* padding: 1rem; */
 }
 
 .output-header {
@@ -609,7 +609,7 @@ label {
   }
   .output-panel,
   .config-panel {
-    padding: 0.5rem;
+    /* padding: 0.5rem; */
   }
   .output-header,
   .config-header {

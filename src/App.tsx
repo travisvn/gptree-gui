@@ -5,7 +5,7 @@ import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
 import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
-import { Moon, Sun } from '@phosphor-icons/react';
+import { ArrowClockwise, Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
 import { HEADER_LINK, GITHUB_LINK, VERSION_NAME, DISPLAY_VERSION_RIBBON } from './lib/constants';
 import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
@@ -369,6 +369,10 @@ function App() {
 
   const dynamicMaxLength = getDynamicMaxLength(windowWidth);
 
+  const handleRefreshDirectoryTree = async () => {
+    await loadDirectory(currentDirectory);
+  };
+
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-background text-text">
       <header className="flex items-center justify-between flex-shrink-0 px-4 py-2 shadow-md bg-light-bg text-text">
@@ -498,8 +502,18 @@ function App() {
         )}
 
         {currentDirectory && directoryTree && (
-          <div className="output-panel flex flex-col p-3 border rounded-lg shadow-sm bg-light-bg border-border w-1/3 min-w-[300px] max-w-[50vw] overflow-hidden ">
-            <h2 className="text-lg font-semibold mb-3 flex-shrink-0">Project Files</h2>
+          <div className="output-panel flex flex-col p-2 border rounded-lg shadow-sm bg-light-bg border-border w-1/3 min-w-[300px] max-w-[50vw] overflow-hidden ">
+            <div className='flex flex-row justify-between items-center gap-2 mb-2'>
+              <h2 className="text-lg/none font-semibold flex-shrink-0">Project Files</h2>
+              <button
+                onClick={handleRefreshDirectoryTree}
+                className="p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10 m-0"
+                data-tooltip-id="app-tooltip"
+                data-tooltip-content="Refresh directory tree"
+              >
+                <ArrowClockwise size={16} weight="bold" />
+              </button>
+            </div>
             <div className="flex-grow overflow-hidden mb-3">
               <DirectoryTree
                 tree={directoryTree}
