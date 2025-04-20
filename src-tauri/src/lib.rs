@@ -9,9 +9,9 @@ mod processor;
 use models::{AppError, Config, DirectoryItem, OutputContent};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use tauri::Manager;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_opener::OpenerExt;
-// use tauri_plugin_clipboard_manager::ClipboardExt;
 
 // Add ConfigMode enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -50,6 +50,35 @@ impl<T> CommandResult<T> {
             error: Some(error),
         }
     }
+}
+
+// App Settings Struct
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")] // Use camelCase for JSON compatibility
+struct AppSettings {
+    default_to_local_config: bool,
+    prompt_for_directory_on_startup: bool,
+}
+
+// Default implementation for AppSettings
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            default_to_local_config: false,        // Default: prefer global config
+            prompt_for_directory_on_startup: true, // Default: prompt user if no last dir
+        }
+    }
+}
+
+// Helper function to get the settings file path
+fn get_settings_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, AppError> {
+    let config_dir = app_handle.path().app_config_dir().map_err(|e| {
+        AppError::Config(format!("Could not determine app config directory: {}", e))
+    })?;
+    // Ensure the directory exists
+    std::fs::create_dir_all(&config_dir)
+        .map_err(|e| AppError::Config(format!("Could not create config directory: {}", e)))?;
+    Ok(config_dir.join("settings.json"))
 }
 
 // Command to select a directory
@@ -348,11 +377,80 @@ async fn pick_save_path(
     }
 }
 
+// Command to get application settings
+#[tauri::command]
+async fn get_app_settings(
+    app_handle: tauri::AppHandle,
+) -> Result<CommandResult<AppSettings>, String> {
+    let settings_path = match get_settings_path(&app_handle) {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(CommandResult::error(format!(
+                "Failed to get settings path: {}",
+                e
+            )))
+        }
+    };
+
+    if !settings_path.exists() {
+        // Return default settings if file doesn't exist
+        return Ok(CommandResult::success(AppSettings::default()));
+    }
+
+    match std::fs::read_to_string(&settings_path) {
+        Ok(content) => match serde_json::from_str(&content) {
+            Ok(settings) => Ok(CommandResult::success(settings)),
+            Err(e) => {
+                eprintln!(
+                    "Warning: Failed to parse settings file: {}. Returning defaults.",
+                    e
+                );
+                Ok(CommandResult::success(AppSettings::default())) // Return defaults on parse error
+            }
+        },
+        Err(e) => Ok(CommandResult::error(format!(
+            "Failed to read settings file: {}",
+            e
+        ))),
+    }
+}
+
+// Command to save application settings
+#[tauri::command]
+async fn save_app_settings(
+    app_handle: tauri::AppHandle,
+    settings: AppSettings,
+) -> Result<CommandResult<bool>, String> {
+    let settings_path = match get_settings_path(&app_handle) {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(CommandResult::error(format!(
+                "Failed to get settings path: {}",
+                e
+            )))
+        }
+    };
+
+    match serde_json::to_string_pretty(&settings) {
+        Ok(content) => match std::fs::write(&settings_path, content) {
+            Ok(_) => Ok(CommandResult::success(true)),
+            Err(e) => Ok(CommandResult::error(format!(
+                "Failed to write settings file: {}",
+                e
+            ))),
+        },
+        Err(e) => Ok(CommandResult::error(format!(
+            "Failed to serialize settings: {}",
+            e
+        ))),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let app_state = AppState {
-        current_dir: std::sync::Mutex::new(PathBuf::from(".")),
-        config_mode: std::sync::Mutex::new(ConfigMode::Global),
+    let initial_state = AppState {
+        current_dir: std::sync::Mutex::new(PathBuf::new()),
+        config_mode: std::sync::Mutex::new(ConfigMode::Global), // Default to global
     };
 
     tauri::Builder::default()
@@ -361,7 +459,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
-        .manage(app_state)
+        .manage(initial_state)
         .invoke_handler(tauri::generate_handler![
             select_directory,
             load_directory,
@@ -374,6 +472,8 @@ pub fn run() {
             set_config_mode,
             get_configs,
             pick_save_path,
+            get_app_settings,
+            save_app_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

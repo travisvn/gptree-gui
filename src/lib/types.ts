@@ -33,10 +33,26 @@ export interface OutputContent {
 }
 
 export interface AppError {
-  message: string;
+  Config?: string;
+  IO?: string;
+  Json?: string;
+  Other?: string;
 }
 
 export interface FileDetail {
   path: string;
   tokens: number;
+}
+
+// Define CommandResult interface
+export interface CommandResult<T> {
+  success: boolean;
+  data?: T | null; // Allow null based on Rust code
+  error?: string | AppError | null; // Allow null and AppError based on Rust code
+}
+
+// Define AppSettings interface (useful to have it here too)
+export interface AppSettings {
+  defaultToLocalConfig: boolean;
+  promptForDirectoryOnStartup: boolean;
 }

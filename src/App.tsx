@@ -3,9 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
+import SettingsModal from "./components/SettingsModal";
 import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
-import { ArrowClockwise, Moon, Sun } from '@phosphor-icons/react';
+import { ArrowClockwise, Gear, GearSix, Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
 import { HEADER_LINK, GITHUB_LINK, VERSION_NAME, DISPLAY_VERSION_RIBBON } from './lib/constants';
 import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
@@ -14,6 +15,8 @@ import { useTheme, ThemeProvider } from './components/ThemeProvider';
 import { truncatePathStart } from './lib/index';
 import { useWindowSize } from './hooks/useWindowSize';
 import { sendSignal } from './hooks/signalEmitter';
+import { settingsAtom } from './lib/store/atoms';
+import { useAtom } from 'jotai';
 
 const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
 
@@ -27,6 +30,10 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [transientSuccess, setTransientSuccess] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
+
+  // State for settings modal
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settings, setSettings] = useAtom(settingsAtom);
 
   function log(message: string, level: 'info' | 'warn' | 'error' | 'debug' | string = 'info') {
     console.log('log', message, level);
@@ -71,13 +78,24 @@ function App() {
     clearTimeout(loadingTimerRef.current!); // Clear any existing timer
     loadingTimerRef.current = setTimeout(() => {
       setShowLoadingIndicator(true);
-    }, LOADING_DELAY);
+    }, LOADING_DELAY) as unknown as number;
   };
 
   const stopLoading = () => {
     clearTimeout(loadingTimerRef.current!);
     setLoading(false);
     setShowLoadingIndicator(false);
+  };
+
+  // Callback when settings are saved
+  const handleSettingsSaved = () => {
+    // sendSuccessMessage("Settings saved successfully!", 2000);
+    // Optionally, you might need to re-fetch or update parts of the app
+    // that depend on these settings. For now, just show a message.
+    // For example, re-fetch configs if default mode changed:
+    // if (currentDirectory) {
+    //   fetchConfigs(currentDirectory);
+    // }
   };
 
   // Check for last used directory
@@ -404,6 +422,18 @@ function App() {
         )}
 
         <div className="flex items-center gap-3">
+          {/* Settings Button */}
+          <button
+            onClick={() => setIsSettingsModalOpen(true)}
+            title="Application Settings"
+            className="button p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10"
+            data-tooltip-id="app-tooltip"
+            data-tooltip-content="Application Settings"
+            data-tooltip-place="bottom"
+            data-tooltip-class-name='text-xs px-2 py-1'
+          >
+            <Gear weight="duotone" />
+          </button>
           <button
             onClick={toggleTheme}
             title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
@@ -652,6 +682,13 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Render Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onOpenChange={setIsSettingsModalOpen}
+        onSettingsSaved={handleSettingsSaved}
+      />
 
       <Tooltip id="app-tooltip" className="react-tooltip z-[51]" />
     </div>
