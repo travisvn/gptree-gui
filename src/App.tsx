@@ -90,7 +90,7 @@ function App() {
   // Callback when settings are saved from the modal
   const handleSettingsSaved = useCallback((newSettings: AppSettings) => {
     setSettings(newSettings); // Update the global Jotai atom
-    sendSuccessMessage("Settings saved successfully!", 2000);
+    sendSuccessMessage("Settings saved", 2000);
     // TODO: Potentially trigger actions based on new settings, e.g., re-fetch configs
     // if (currentDirectory && newSettings.defaultToLocalConfig !== settings?.defaultToLocalConfig) {
     //   fetchConfigs(currentDirectory);
@@ -462,10 +462,8 @@ function App() {
             onClick={() => setIsSettingsModalOpen(true)}
             title="Application Settings"
             className="button p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10"
-            data-tooltip-id="app-tooltip"
+            data-tooltip-id="small-tooltip"
             data-tooltip-content="Application Settings"
-            data-tooltip-place="bottom"
-            data-tooltip-class-name='text-xs px-2 py-1'
           >
             <Gear weight="duotone" />
           </button>
@@ -473,6 +471,8 @@ function App() {
             onClick={toggleTheme}
             title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
             className="button p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10"
+            data-tooltip-id="small-tooltip"
+            data-tooltip-content={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
           >
             {theme === "light" ? <Moon weight="fill" /> : <Sun weight="fill" />}
           </button>
@@ -583,7 +583,7 @@ function App() {
               <button
                 onClick={handleRefreshDirectoryTree}
                 className="button p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10 m-0"
-                data-tooltip-id="app-tooltip"
+                data-tooltip-id="small-tooltip"
                 data-tooltip-content="Refresh directory tree"
               >
                 <ArrowClockwise size={16} weight="bold" />
@@ -719,6 +719,15 @@ function App() {
       </div>
 
       <Tooltip id="app-tooltip" className="react-tooltip z-[51]" />
+      <Tooltip
+        id="small-tooltip"
+        className="react-tooltip z-[51]"
+        style={{
+          fontSize: '12px',
+          padding: '4px 8px',
+          borderRadius: '4px',
+        }}
+      />
     </div>
   );
 }

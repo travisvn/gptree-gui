@@ -7,7 +7,8 @@
     filter: drop-shadow(0 0 2em #61dafb);
   }
   :root {
-    --primary-color: #2563eb;
+    --primary: #2563eb;
+    --primary-color: var(--primary);
     --primary-hover: #1d4ed8;
     --text-color: #1f2937;
     --light-text: #6b7280;
@@ -19,6 +20,7 @@
     --error-color: #ef4444;
     --input-color: var(--text-color);
     --input-bg: white;
+    --bg-offset: color-mix(in srgb, var(--light-bg), black 30%);
     --scrollbar-bg: #e5e7eb;
     --scrollbar-thumb: #cbd5e1;
     --scrollbar-thumb-hover: #a1a1aa;
@@ -47,10 +49,13 @@
       var(--color-blue-500) 20%,
       transparent
     ) !important;
+
+    --shadow-color: rgba(0, 0, 0, 0.1);
   }
 
   .dark {
-    --primary-color: #3b82f6;
+    --primary: #3b82f6;
+    --primary-color: var(--primary);
     --primary-hover: #2563eb;
     --text-color: #f3f4f6;
     --light-text: #9ca3af;
@@ -62,6 +67,7 @@
     --error-color: #ef4444;
     --input-color: var(--text-color);
     --input-bg: #374151;
+    --bg-offset: color-mix(in srgb, var(--light-bg), white 30%);
     --scrollbar-bg: #1f2937;
     --scrollbar-thumb: #374151;
     --scrollbar-thumb-hover: #4b5563;
@@ -71,6 +77,9 @@
       var(--color-sky-300) 50%,
       transparent
     ) !important;
+
+    /* --shadow-color: rgba(255, 255, 255, 0.1); */
+    --shadow-color: rgba(0, 0, 0, 0.2);
   }
 
   html,
@@ -249,7 +258,7 @@
     /* font-weight: 500; */
     /* font-family: inherit; */
     /* transition: border-color 0.25s; */
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 2px var(--shadow-color);
   }
 
   .button {

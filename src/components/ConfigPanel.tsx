@@ -126,9 +126,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                 <button
                   onClick={(e) => { e.stopPropagation(); handleReset(); }} // Prevent expansion toggle
                   className="button p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10 m-0"
-                  data-tooltip-id="app-tooltip"
+                  data-tooltip-id="small-tooltip"
                   data-tooltip-content="Reset Changes"
-                  data-tooltip-class-name='text-xs py-1 px-2'
                 >
                   <ArrowCounterClockwise size={16} weight="bold" />
                 </button>
@@ -136,11 +135,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   onClick={(e) => { e.stopPropagation(); handleSave(); }} // Prevent expansion toggle
                   className="button primary-button rounded-md text-xs/tight m-0 inline-flex items-center gap-1 text-white"
                   // disabled={!isDirty || disabled}
-                  data-tooltip-id="app-tooltip"
+                  data-tooltip-id="small-tooltip"
                   data-tooltip-content="Save Changes"
-                  data-tooltip-class-name='text-xs py-1 px-2'
                 >
-                  <FloppyDisk size={16} weight="duotone" className='text-primary' /> Save
+                  <FloppyDisk size={16} weight="duotone" className='text-white' /> Save
                 </button>
               </div>
             </>
