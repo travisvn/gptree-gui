@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
@@ -9,14 +9,14 @@ import { Tooltip } from 'react-tooltip';
 import { ArrowClockwise, Gear, GearSix, Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
 import { HEADER_LINK, GITHUB_LINK, VERSION_NAME, DISPLAY_VERSION_RIBBON } from './lib/constants';
-import { DirectoryItem, Config, OutputContent, AppError } from './lib/types';
+import { DirectoryItem, Config, OutputContent, AppError, CommandResult, AppSettings } from './lib/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme, ThemeProvider } from './components/ThemeProvider';
 import { truncatePathStart } from './lib/index';
 import { useWindowSize } from './hooks/useWindowSize';
 import { sendSignal } from './hooks/signalEmitter';
 import { settingsAtom } from './lib/store/atoms';
-import { useAtom } from 'jotai';
+import { useSetAtom } from 'jotai';
 
 const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
 
@@ -33,7 +33,7 @@ function App() {
 
   // State for settings modal
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settings, setSettings] = useAtom(settingsAtom);
+  const setSettings = useSetAtom(settingsAtom);
 
   function log(message: string, level: 'info' | 'warn' | 'error' | 'debug' | string = 'info') {
     console.log('log', message, level);
@@ -87,16 +87,37 @@ function App() {
     setShowLoadingIndicator(false);
   };
 
-  // Callback when settings are saved
-  const handleSettingsSaved = () => {
-    // sendSuccessMessage("Settings saved successfully!", 2000);
-    // Optionally, you might need to re-fetch or update parts of the app
-    // that depend on these settings. For now, just show a message.
-    // For example, re-fetch configs if default mode changed:
-    // if (currentDirectory) {
+  // Callback when settings are saved from the modal
+  const handleSettingsSaved = useCallback((newSettings: AppSettings) => {
+    setSettings(newSettings); // Update the global Jotai atom
+    sendSuccessMessage("Settings saved successfully!", 2000);
+    // TODO: Potentially trigger actions based on new settings, e.g., re-fetch configs
+    // if (currentDirectory && newSettings.defaultToLocalConfig !== settings?.defaultToLocalConfig) {
     //   fetchConfigs(currentDirectory);
     // }
-  };
+  }, [setSettings, sendSuccessMessage]);
+
+  // Load initial application settings
+  const loadInitialSettings = useCallback(async () => {
+    log('Loading initial application settings...', 'debug');
+    try {
+      const result = await invoke<CommandResult<AppSettings>>('get_app_settings');
+      if (result.success && result.data) {
+        log('Settings loaded successfully', 'debug');
+        setSettings(result.data);
+        // TODO: Apply initial settings logic here if needed (e.g., setting initial config mode)
+      } else {
+        const errorMsg = result.error ? JSON.stringify(result.error) : 'Unknown error';
+        log(`Failed to load settings: ${errorMsg}`, 'error');
+        // Optionally set default settings in atom or show persistent error
+        // setSettings(AppSettingsDefault); // Assuming you have defaults defined
+        sendErrorMessage(`Failed to load settings: ${errorMsg}`);
+      }
+    } catch (err: any) {
+      log(`Error invoking get_app_settings: ${err.toString()}`, 'error');
+      sendErrorMessage(`Error loading settings: ${err.toString()}`);
+    }
+  }, [setSettings]);
 
   // Check for last used directory
   const checkLastDirectory = async () => {
@@ -341,9 +362,13 @@ function App() {
     }
   };
 
-  // When app loads, check for last directory
+  // When app loads, load settings and check for last directory
   useEffect(() => {
     const init = async () => {
+      await loadInitialSettings(); // Load settings first
+
+      // Now proceed with directory loading logic (potentially using settings)
+      // TODO: Use settings.promptForDirectoryOnStartup here
       const lastDirLoaded = await checkLastDirectory();
       // Only prompt if no last directory AND no current directory set
       if (!lastDirLoaded && !currentDirectory) {
@@ -366,7 +391,7 @@ function App() {
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+  }, [loadInitialSettings]);
 
   // Effect: perform clipboard copy after output is set
   useEffect(() => {
@@ -683,7 +708,7 @@ function App() {
         )}
       </div>
 
-      {/* Render Settings Modal */}
+      {/* Render Settings Modal - Pass the callback */}
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onOpenChange={setIsSettingsModalOpen}
