@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
@@ -6,7 +6,7 @@ import OutputPanel from "./components/OutputPanel";
 import SettingsModal from "./components/SettingsModal";
 import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
-import { ArrowClockwise, Gear, GearSix, Moon, Sun } from '@phosphor-icons/react';
+import { ArrowClockwise, Gear, Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
 import { HEADER_LINK, GITHUB_LINK, VERSION_NAME, DISPLAY_VERSION_RIBBON } from './lib/constants';
 import { DirectoryItem, Config, OutputContent, AppError, CommandResult, AppSettings } from './lib/types';
@@ -428,6 +428,16 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-background text-text">
+
+
+      {/* Render Settings Modal - Pass the callback */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onOpenChange={setIsSettingsModalOpen}
+        onSettingsSaved={handleSettingsSaved}
+      // onSettingsSaved={() => { }}
+      />
+
       <header className="flex items-center justify-between flex-shrink-0 px-4 py-2 shadow-md bg-light-bg text-text">
         <a
           href={HEADER_LINK}
@@ -707,13 +717,6 @@ function App() {
           </div>
         )}
       </div>
-
-      {/* Render Settings Modal - Pass the callback */}
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onOpenChange={setIsSettingsModalOpen}
-        onSettingsSaved={handleSettingsSaved}
-      />
 
       <Tooltip id="app-tooltip" className="react-tooltip z-[51]" />
     </div>
