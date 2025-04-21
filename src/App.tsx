@@ -9,7 +9,7 @@ import { Tooltip } from 'react-tooltip';
 import { ArrowClockwise, Gear, Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
 import { HEADER_LINK, GITHUB_LINK, VERSION_NAME, DISPLAY_VERSION_RIBBON } from './lib/constants';
-import { DirectoryItem, Config, OutputContent, AppError, CommandResult, AppSettings } from './lib/types';
+import { DirectoryItem, Config, OutputContent, AppError, CommandResult, AppSettings, SessionState } from './lib/types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme, ThemeProvider } from './components/ThemeProvider';
 import { truncatePathStart } from './lib/index';
@@ -33,6 +33,8 @@ function App() {
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [settings, setSettings] = useAtom(settingsAtom);
+
+  const [initialConfigModePreference, setInitialConfigModePreference] = useState<'global' | 'local' | null>(null);
 
   function log(message: string, level: 'info' | 'warn' | 'error' | 'debug' | string = 'info') {
     console.log('log', message, level);
@@ -85,9 +87,9 @@ function App() {
     setSettings(newSettings);
     sendSuccessMessage("Settings saved", 2000);
     if (currentDirectory && newSettings.defaultToLocalConfig !== settings?.defaultToLocalConfig) {
-      fetchConfigs(currentDirectory, newSettings);
+      fetchConfigs(currentDirectory, newSettings, initialConfigModePreference);
     }
-  }, [setSettings, sendSuccessMessage, currentDirectory, settings]);
+  }, [setSettings, sendSuccessMessage, currentDirectory, settings, initialConfigModePreference]);
 
   const loadInitialSettings = useCallback(async (): Promise<AppSettings | null> => {
     log('Loading initial application settings...', 'debug');
@@ -113,25 +115,36 @@ function App() {
   const checkLastDirectory = useCallback(async (loadedSettings: AppSettings | null): Promise<boolean> => {
     clearMessages();
     try {
-      const result = await invoke<{ success: boolean; data?: string | null; error?: string }>(
-        "get_last_directory"
-      );
+      const result = await invoke<CommandResult<SessionState>>("get_session_state");
 
       if (result.success && result.data) {
-        const path = result.data;
-        log(`Found last directory: ${path}`, 'debug');
-        setCurrentDirectory(path);
-        await loadDirectory(path, loadedSettings);
-        return true;
+        const { lastDirectory, lastConfigMode } = result.data;
+        if (lastConfigMode === 'global' || lastConfigMode === 'local') {
+          setInitialConfigModePreference(lastConfigMode);
+          log(`Retrieved last config mode preference: ${lastConfigMode}`, 'debug');
+        } else {
+          setInitialConfigModePreference(null);
+        }
+
+        if (lastDirectory) {
+          const path = lastDirectory;
+          log(`Found last directory: ${path}`, 'debug');
+          setCurrentDirectory(path);
+          await loadDirectory(path, loadedSettings, lastConfigMode === 'global' || lastConfigMode === 'local' ? lastConfigMode : null);
+          return true;
+        } else {
+          log('No last directory path found in session state.', 'debug');
+          return false;
+        }
       } else if (result.error) {
-        log(`Error loading last directory: ${result.error}`, 'warn');
+        log(`Error loading last session state: ${result.error}`, 'warn');
       } else {
-        log('No last directory found.', 'debug');
+        log('No last session state data returned.', 'debug');
       }
       return false;
     } catch (err) {
-      log(`Error checking last directory: ${err}`, 'error');
-      setError(`Error checking last directory: ${err}`);
+      log(`Error invoking get_session_state: ${err}`, 'error');
+      setError(`Error checking last session state: ${err}`);
       return false;
     }
   }, [log, setError, clearMessages]);
@@ -143,7 +156,7 @@ function App() {
 
       if (result.success && result.data) {
         setCurrentDirectory(result.data);
-        await loadDirectory(result.data, loadedSettings);
+        await loadDirectory(result.data, loadedSettings, initialConfigModePreference);
         return true;
       } else if (result.error) {
         if (result.error.includes("cancelled")) {
@@ -158,24 +171,38 @@ function App() {
       setError(`Error selecting directory: ${err}`);
       return false;
     }
-  }, [log, setError, clearMessages]);
+  }, [log, setError, clearMessages, initialConfigModePreference]);
 
-  const fetchConfigs = async (dir: string, currentSettings: AppSettings | null) => {
+  const fetchConfigs = async (dir: string, currentSettings: AppSettings | null, modePreference: 'global' | 'local' | null) => {
     log(`Fetching configs for: ${dir}`, 'debug');
     try {
-      const result = await invoke<{ success: boolean; data?: any; error?: string }>("get_configs", { path: dir });
+      const result = await invoke<{ success: boolean; data?: { global?: Config, local?: Config }; error?: string }>("get_configs", { path: dir });
       if (result.success && result.data) {
         log('Configs fetched successfully', 'debug');
+        const globalExists = !!result.data.global;
+        const localExists = !!result.data.local;
         setGlobalConfig(result.data.global || null);
         setLocalConfig(result.data.local || null);
 
-        let initialMode = 'global';
-        if (currentSettings?.defaultToLocalConfig) {
-          initialMode = result.data.local ? 'local' : 'global';
-          log(`Settings indicate defaulting to local config. Using: ${initialMode}`, 'debug');
+        let initialMode: 'global' | 'local' = 'global';
+
+        const lastModePref = modePreference;
+        log(`Using mode preference from init/state: ${lastModePref}`, 'debug');
+
+        if (lastModePref === 'local' && localExists) {
+          initialMode = 'local';
+          log(`Prioritizing preference: local (exists: ${localExists})`, 'debug');
+        } else if (lastModePref === 'global' && globalExists) {
+          initialMode = 'global';
+          log(`Prioritizing preference: global (exists: ${globalExists})`, 'debug');
         } else {
-          initialMode = result.data.global ? 'global' : 'local';
-          log(`Settings indicate defaulting to global config (or settings unavailable). Using: ${initialMode}`, 'debug');
+          if (currentSettings?.defaultToLocalConfig) {
+            initialMode = localExists ? 'local' : 'global';
+            log(`Fallback to setting: defaultToLocal=true. Using: ${initialMode} (local exists: ${localExists}, global exists: ${globalExists})`, 'debug');
+          } else {
+            initialMode = globalExists ? 'global' : 'local';
+            log(`Fallback to setting: defaultToLocal=false. Using: ${initialMode} (local exists: ${localExists}, global exists: ${globalExists})`, 'debug');
+          }
         }
 
         setConfigMode(initialMode);
@@ -200,7 +227,7 @@ function App() {
     }
   };
 
-  const loadDirectory = async (path: string, currentSettings: AppSettings | null) => {
+  const loadDirectory = async (path: string, currentSettings: AppSettings | null, modePreference: 'global' | 'local' | null) => {
     log(`Loading directory structure for: ${path}`, 'debug');
     clearMessages();
     try {
@@ -212,7 +239,7 @@ function App() {
       if (treeResult.success && treeResult.data) {
         log('Directory tree loaded successfully', 'debug');
         setDirectoryTree(treeResult.data);
-        await fetchConfigs(path, currentSettings);
+        await fetchConfigs(path, currentSettings, modePreference);
       } else if (treeResult.error) {
         setError(treeResult.error);
         log(`Error loading directory tree: ${treeResult.error}`, 'error');
@@ -330,13 +357,22 @@ function App() {
     try {
       clearMessages();
       setConfigMode(mode);
+
+      try {
+        log(`Persisting config mode choice via global config: ${mode}`, 'debug');
+        await invoke('set_last_config_mode', { mode: mode });
+        setInitialConfigModePreference(mode);
+      } catch (persistError) {
+        log(`Failed to persist config mode choice: ${persistError}`, 'error');
+      }
+
       const newActiveConfig = mode === 'local' ? (localConfig || globalConfig) : (globalConfig || localConfig);
       setConfig(newActiveConfig);
       if (!newActiveConfig) {
         log(`Switched to ${mode} config, but no config found for this mode.`, 'warn');
       }
     } catch (err) {
-      sendErrorMessage(`Error switching config mode: ${err}`);
+      sendErrorMessage(`Error switching config mode UI: ${err}`);
     }
   };
 
@@ -344,6 +380,8 @@ function App() {
     const initializeApp = async () => {
       startLoading();
       let loadedSettings: AppSettings | null = null;
+      let modePrefFromSession: 'global' | 'local' | null = null;
+
       try {
         loadedSettings = await loadInitialSettings();
         if (!loadedSettings) {
@@ -352,18 +390,36 @@ function App() {
           return;
         }
 
-        let directoryLoadedOrSelected = await checkLastDirectory(loadedSettings);
+        let directoryLoaded = false;
+        try {
+          const result = await invoke<CommandResult<SessionState>>("get_session_state");
+          if (result.success && result.data) {
+            const { lastDirectory, lastConfigMode } = result.data;
+            if (lastConfigMode === 'global' || lastConfigMode === 'local') {
+              modePrefFromSession = lastConfigMode;
+              setInitialConfigModePreference(lastConfigMode);
+              log(`Initialized with last config mode preference: ${lastConfigMode}`, 'debug');
+            }
+            if (lastDirectory) {
+              log(`Found last directory: ${lastDirectory}`, 'debug');
+              setCurrentDirectory(lastDirectory);
+              await loadDirectory(lastDirectory, loadedSettings, modePrefFromSession);
+              directoryLoaded = true;
+            }
+          }
+        } catch (e) {
+          log(`Error getting session state during init: ${e}`, 'error');
+        }
 
-        if (!directoryLoadedOrSelected) {
+        if (!directoryLoaded) {
           if (import.meta.env.DEV) {
             log("Development mode: loading default directory.", 'debug');
             setCurrentDirectory(DEFAULT_DIRECTORY);
-            await loadDirectory(DEFAULT_DIRECTORY, loadedSettings);
-            directoryLoadedOrSelected = true;
+            await loadDirectory(DEFAULT_DIRECTORY, loadedSettings, modePrefFromSession);
           } else if (loadedSettings?.promptForDirectoryOnStartup) {
             log("Settings indicate prompt for directory on startup.", 'debug');
-            directoryLoadedOrSelected = await handleSelectDirectory(loadedSettings);
-            if (!directoryLoadedOrSelected) {
+            const selected = await handleSelectDirectory(loadedSettings);
+            if (!selected) {
               log("User did not select a directory when prompted.", 'info');
             }
           } else {
@@ -408,7 +464,7 @@ function App() {
 
   const handleRefreshDirectoryTree = async () => {
     if (!currentDirectory) return;
-    await loadDirectory(currentDirectory, settings);
+    await loadDirectory(currentDirectory, settings, initialConfigModePreference);
   };
 
   return (

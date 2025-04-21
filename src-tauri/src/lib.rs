@@ -8,6 +8,7 @@ mod processor;
 
 use models::{AppError, Config, DirectoryItem, OutputContent};
 use serde::{Deserialize, Serialize};
+use std::fs as StdFs;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -18,6 +19,14 @@ use tauri_plugin_opener::OpenerExt;
 enum ConfigMode {
     Global,
     LocalOverride,
+}
+
+// Define the separate session state struct
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct SessionState {
+    last_directory: Option<String>,
+    last_config_mode: Option<String>,
 }
 
 // Store the app state
@@ -76,24 +85,36 @@ fn get_settings_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, AppError>
         AppError::Config(format!("Could not determine app config directory: {}", e))
     })?;
     // Ensure the directory exists
-    std::fs::create_dir_all(&config_dir)
+    StdFs::create_dir_all(&config_dir)
         .map_err(|e| AppError::Config(format!("Could not create config directory: {}", e)))?;
     Ok(config_dir.join("settings.json"))
 }
 
 // Command to select a directory
 #[tauri::command]
-async fn select_directory(app: tauri::AppHandle) -> Result<CommandResult<String>, String> {
+async fn select_directory(app_handle: tauri::AppHandle) -> Result<CommandResult<String>, String> {
     use tauri_plugin_dialog::DialogExt;
 
-    let file_path = app.dialog().file().blocking_pick_folder();
+    let file_path = app_handle.dialog().file().blocking_pick_folder();
     match file_path {
         Some(path) => {
-            // Save the selected directory
-            if let Err(e) = config::update_last_directory(Path::new(&path.to_string())) {
-                eprintln!("Warning: Failed to save last directory: {}", e);
+            let path_str = path.to_string();
+            // Save the selected directory to session state
+            match config::load_session_state(&app_handle) {
+                Ok(mut state) => {
+                    state.last_directory = Some(path_str.clone());
+                    if let Err(e) = config::save_session_state(&app_handle, &state) {
+                        eprintln!("[GPTree] Warning: Failed to save session state: {}", e);
+                    }
+                }
+                Err(e) => {
+                    eprintln!(
+                        "[GPTree] Warning: Failed to load session state to save directory: {}",
+                        e
+                    );
+                }
             }
-            Ok(CommandResult::success(path.to_string()))
+            Ok(CommandResult::success(path_str))
         }
         None => Ok(CommandResult::error("No directory selected".to_string())),
     }
@@ -109,11 +130,6 @@ async fn load_directory(
 
     // Update the current directory
     *state.current_dir.lock().unwrap() = path.to_path_buf();
-
-    // Save the selected directory to global config's last_directory
-    if let Err(e) = config::update_last_directory(path) {
-        eprintln!("Warning: Failed to save last directory: {}", e);
-    }
 
     // Need to load *a* config temporarily just to get tree display options
     // Let's try local first, then global. This is only for display.
@@ -283,13 +299,15 @@ async fn open_output_file(
     }
 }
 
-// Command to get the last selected directory
+// Command to get session state
 #[tauri::command]
-async fn get_last_directory() -> Result<CommandResult<Option<String>>, String> {
-    match config::load_or_create_global_config() {
-        Ok(config) => Ok(CommandResult::success(config.last_directory)),
+async fn get_session_state(
+    app_handle: tauri::AppHandle,
+) -> Result<CommandResult<SessionState>, String> {
+    match config::load_session_state(&app_handle) {
+        Ok(state) => Ok(CommandResult::success(state)),
         Err(e) => Ok(CommandResult::error(format!(
-            "Failed to load config: {}",
+            "Failed to load session state: {}",
             e
         ))),
     }
@@ -383,34 +401,37 @@ async fn get_app_settings(
     app_handle: tauri::AppHandle,
 ) -> Result<CommandResult<AppSettings>, String> {
     let settings_path = match get_settings_path(&app_handle) {
-        Ok(p) => p,
+        Ok(path) => path,
         Err(e) => {
             return Ok(CommandResult::error(format!(
-                "Failed to get settings path: {}",
+                "Error getting settings path: {}",
                 e
             )))
         }
     };
 
     if !settings_path.exists() {
-        // Return default settings if file doesn't exist
+        println!(
+            "[GPTree] Settings file not found at {:?}, returning defaults.",
+            settings_path
+        );
         return Ok(CommandResult::success(AppSettings::default()));
     }
 
-    match std::fs::read_to_string(&settings_path) {
+    match StdFs::read_to_string(&settings_path) {
         Ok(content) => match serde_json::from_str(&content) {
             Ok(settings) => Ok(CommandResult::success(settings)),
             Err(e) => {
                 eprintln!(
-                    "Warning: Failed to parse settings file: {}. Returning defaults.",
-                    e
+                    "[GPTree] Warning: Failed to parse settings file {:?}: {}. Returning defaults.",
+                    settings_path, e
                 );
                 Ok(CommandResult::success(AppSettings::default())) // Return defaults on parse error
             }
         },
         Err(e) => Ok(CommandResult::error(format!(
-            "Failed to read settings file: {}",
-            e
+            "Failed to read settings file {:?}: {}",
+            settings_path, e
         ))),
     }
 }
@@ -422,21 +443,21 @@ async fn save_app_settings(
     settings: AppSettings,
 ) -> Result<CommandResult<bool>, String> {
     let settings_path = match get_settings_path(&app_handle) {
-        Ok(p) => p,
+        Ok(path) => path,
         Err(e) => {
             return Ok(CommandResult::error(format!(
-                "Failed to get settings path: {}",
+                "Error getting settings path: {}",
                 e
             )))
         }
     };
 
     match serde_json::to_string_pretty(&settings) {
-        Ok(content) => match std::fs::write(&settings_path, content) {
+        Ok(content) => match StdFs::write(&settings_path, content) {
             Ok(_) => Ok(CommandResult::success(true)),
             Err(e) => Ok(CommandResult::error(format!(
-                "Failed to write settings file: {}",
-                e
+                "Failed to write settings file {:?}: {}",
+                settings_path, e
             ))),
         },
         Err(e) => Ok(CommandResult::error(format!(
@@ -446,6 +467,46 @@ async fn save_app_settings(
     }
 }
 
+// Command to set the last used config mode preference
+#[tauri::command]
+async fn set_last_config_mode(
+    app_handle: tauri::AppHandle,
+    mode: String,
+) -> Result<CommandResult<bool>, String> {
+    // Validate mode
+    if mode != "global" && mode != "local" {
+        return Ok(CommandResult::error(format!(
+            "Invalid config mode '{}' provided. Must be 'global' or 'local'.",
+            mode
+        )));
+    }
+
+    // Load current session state or defaults
+    let mut current_state = match config::load_session_state(&app_handle) {
+        Ok(state) => state,
+        Err(e) => {
+            eprintln!(
+                "[GPTree] Warning: Failed to load session state to update mode: {}. Using default.",
+                e
+            );
+            SessionState::default()
+        }
+    };
+
+    // Update the mode
+    current_state.last_config_mode = Some(mode);
+
+    // Save the updated state
+    match config::save_session_state(&app_handle, &current_state) {
+        Ok(_) => Ok(CommandResult::success(true)),
+        Err(e) => Ok(CommandResult::error(format!(
+            "Error saving updated session state: {}",
+            e
+        ))),
+    }
+}
+
+// Main run function
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let initial_state = AppState {
@@ -468,12 +529,13 @@ pub fn run() {
             generate_output,
             copy_to_clipboard,
             open_output_file,
-            get_last_directory,
+            get_session_state,
             set_config_mode,
             get_configs,
             pick_save_path,
             get_app_settings,
             save_app_settings,
+            set_last_config_mode
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

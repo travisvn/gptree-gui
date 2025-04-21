@@ -56,3 +56,9 @@ export interface AppSettings {
   defaultToLocalConfig: boolean;
   promptForDirectoryOnStartup: boolean;
 }
+
+// Define SessionState interface (from session_state.json)
+export interface SessionState {
+  lastDirectory?: string | null;
+  lastConfigMode?: 'global' | 'local' | null;
+}

@@ -1,10 +1,13 @@
 use crate::models::{AppError, Config, CONFIG_VERSION};
+use crate::{AppSettings, SessionState};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use tauri::Manager;
 
 const PROJECT_CONFIG_FILE: &str = ".gptree_config";
 const GLOBAL_CONFIG_FILE: &str = ".gptreerc";
+const SESSION_STATE_FILE: &str = "session_state.json";
 
 /// Load or create a configuration file for the project
 pub fn load_or_create_project_config(root_dir: &Path) -> Result<Config, AppError> {
@@ -121,13 +124,6 @@ fn load_config(config_path: &Path) -> Result<Config, AppError> {
                         value.split(',').map(|s| s.trim().to_string()).collect()
                     };
                 }
-                "lastDirectory" => {
-                    config.last_directory = if value.is_empty() {
-                        None
-                    } else {
-                        Some(value.to_string())
-                    };
-                }
                 _ => {}
             }
         }
@@ -147,7 +143,6 @@ pub fn save_config(config_path: &Path, config: &Config, is_global: bool) -> Resu
         if is_global { "Global" } else { "Local" }
     )?;
     writeln!(file, "version: {}", config.version)?;
-    writeln!(file)?;
     writeln!(file, "# Whether to use .gitignore")?;
     writeln!(file, "useGitIgnore: {}", config.use_git_ignore)?;
     writeln!(file, "# File types to include (e.g., .py,.js)")?;
@@ -204,16 +199,6 @@ pub fn save_config(config_path: &Path, config: &Config, is_global: bool) -> Resu
         writeln!(file, "previousFiles: {}", config.previous_files.join(","))?;
     }
 
-    // Add last directory to configuration
-    if is_global {
-        writeln!(file, "# Last selected directory")?;
-        writeln!(
-            file,
-            "lastDirectory: {}",
-            config.last_directory.as_deref().unwrap_or("")
-        )?;
-    }
-
     Ok(())
 }
 
@@ -245,28 +230,6 @@ pub fn update_previous_files(
     save_config(config_path, &config, false)
 }
 
-/// Update the last directory in the configuration
-pub fn update_last_directory(path: &Path) -> Result<(), AppError> {
-    // Get home directory for global config
-    let home_dir = dirs::home_dir()
-        .ok_or_else(|| AppError::Config("Could not find home directory".to_string()))?;
-
-    let config_path = home_dir.join(GLOBAL_CONFIG_FILE);
-
-    // Load existing config or create a new one
-    let mut config = if config_path.exists() {
-        load_config(&config_path)?
-    } else {
-        Config::default()
-    };
-
-    // Update the last directory
-    config.last_directory = Some(path.to_string_lossy().to_string());
-
-    // Save the updated config
-    save_config(&config_path, &config, true)
-}
-
 /// Migrate a config to the current version
 fn migrate_config(mut config: Config, is_global: bool) -> Config {
     if config.version < CONFIG_VERSION {
@@ -290,4 +253,35 @@ fn migrate_config(mut config: Config, is_global: bool) -> Config {
     }
 
     config
+}
+
+/// Get the path to the session state file using app_handle
+fn get_session_state_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, AppError> {
+    let config_dir = app_handle.path().app_config_dir().map_err(|e| {
+        AppError::Config(format!("Could not determine app config directory: {}", e))
+    })?;
+    // Ensure the directory exists
+    fs::create_dir_all(&config_dir)
+        .map_err(|e| AppError::Config(format!("Could not create config directory: {}", e)))?;
+    Ok(config_dir.join(SESSION_STATE_FILE))
+}
+
+/// Load session state from file
+pub fn load_session_state(app_handle: &tauri::AppHandle) -> Result<SessionState, AppError> {
+    let path = get_session_state_path(app_handle)?;
+    if !path.exists() {
+        return Ok(SessionState::default()); // Return default if file doesn't exist
+    }
+    let content = fs::read_to_string(&path).map_err(AppError::Io)?; // Use shorthand
+    serde_json::from_str(&content).map_err(|e| AppError::Json(e.to_string()))
+}
+
+/// Save session state to file
+pub fn save_session_state(
+    app_handle: &tauri::AppHandle,
+    state: &SessionState,
+) -> Result<(), AppError> {
+    let path = get_session_state_path(app_handle)?;
+    let content = serde_json::to_string_pretty(state).map_err(|e| AppError::Json(e.to_string()))?;
+    fs::write(&path, content).map_err(AppError::Io) // Use shorthand
 }
