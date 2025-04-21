@@ -62,6 +62,7 @@ export const inputTextEntryStyles = cn(
 
 export const inputStyles = cn(
   focusRing,
-  'rounded-md border border-input-border bg-input-bg text-text p-2 text-sm',
+  'rounded-md border border-input-border text-text p-2 text-sm',
+  'dark:bg-input-bg bg-background',
   // inputTextEntryStyles,
 )
