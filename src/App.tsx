@@ -443,6 +443,8 @@ function App() {
           href={HEADER_LINK}
           target='_blank'
           className="flex items-end gap-1.5 text-inherit"
+          data-tooltip-id="small-tooltip"
+          data-tooltip-content="Visit the GPTree website"
         >
           <GptreeLogo className="h-8 w-auto" />
           <h1 className="text-2xl/none font-bold m-0 tracking-tighter">GPTree</h1>

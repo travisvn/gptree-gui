@@ -4,6 +4,7 @@ import { useAtom } from 'jotai';
 import { debugEnabledAtom } from '../lib/store/atoms';
 import { type Config as ConfigType } from '../lib/types'; // Import Config type
 import { cn } from '../lib/utils'; // Assuming cn is utility for classnames
+import { Input } from './ui/input';
 
 interface ConfigPanelProps {
   config: ConfigType | null; // Allow null config
@@ -152,7 +153,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
           } relative`}
       >
         <div className='absolute top-0 right-0 p-2'>
-          <span
+          <div
             data-tooltip-id={"app-tooltip"}
             data-tooltip-content={debugEnabled ? 'Disable debug mode' : 'Enable debug mode'}
             className={debugEnabled ? 'cursor-not-allowed' : ''}
@@ -167,7 +168,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             >
               <Bug size={18} />
             </button>
-          </span>
+          </div>
         </div>
         <div className="config-section mb-4 pb-2">
           <h4 className="text-sm font-medium text-[--light-text] mb-2">File Selection</h4>
@@ -212,7 +213,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
           <h4 className="text-sm font-medium text-[--light-text] mb-2">File Types</h4>
           <div className="config-option flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
             <label htmlFor="include-file-types" className="flex-shrink-0 mb-1 sm:mb-0">Include types:</label>
-            <input
+            <Input
               type="text"
               id="include-file-types"
               value={currentConfig.include_file_types}
@@ -224,7 +225,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </div>
           <div className="config-option flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
             <label htmlFor="exclude-file-types" className="flex-shrink-0 mb-1 sm:mb-0">Exclude types:</label>
-            <input
+            <Input
               type="text"
               id="exclude-file-types"
               value={currentConfig.exclude_file_types.join(',')}
@@ -240,7 +241,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
           <h4 className="text-sm font-medium text-[--light-text] mb-2">Output Options</h4>
           <div className="config-option flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
             <label htmlFor="output-file" className="flex-shrink-0 mb-1 sm:mb-0">Output file name:</label>
-            <input
+            <Input
               type="text"
               id="output-file"
               value={currentConfig.output_file}

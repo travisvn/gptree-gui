@@ -9,3 +9,5 @@ export const debugEnabledAtom = atomWithImmer(false);
 
 // If null, settings have not been loaded yet
 export const settingsAtom = atomWithImmer<AppSettings | null>(null);
+
+export const isReadyAtom = atomWithImmer(false); // maybe don't need

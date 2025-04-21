@@ -10,6 +10,8 @@
 /* https://tailwindcss.com/docs/theme#theme-variable-namespaces */
 
 @theme {
+  --breakpoint-small: 650px;
+
   --color-primary: var(--primary);
   --color-primary-color: var(--primary-color);
   --color-primary-hover: var(--primary-hover);
@@ -154,8 +156,5 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-  }
-  body {
-    /* @apply bg-background text-foreground; */
   }
 }

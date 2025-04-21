@@ -1,12 +1,7 @@
 @layer base {
-  .logo.vite:hover {
-    filter: drop-shadow(0 0 2em #747bff);
-  }
-
-  .logo.react:hover {
-    filter: drop-shadow(0 0 2em #61dafb);
-  }
   :root {
+    --breakpoint-small: 650px;
+
     --primary: #2563eb;
     --primary-color: var(--primary);
     --primary-hover: #1d4ed8;
@@ -31,18 +26,6 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-
-    /* --secondary-color: color-mix(
-    in oklab,
-    oklch(82.7% 0.119 306.383) 50%,
-    transparent
-  ) !important; */
-
-    /* --secondary-color: color-mix(
-    in oklab,
-    var(--color-purple-300) 50%,
-    transparent
-  ) !important; */
 
     --secondary-color: color-mix(
       in oklab,
@@ -83,8 +66,7 @@
   }
 
   html,
-  body,
-  .app-container {
+  body {
     background-color: var(--background);
     color: var(--text-color);
     transition: background-color 0.3s, color 0.3s;
@@ -103,7 +85,7 @@
     height: 100%;
   }
 
-  input,
+  /* input, */
   .button {
     color: var(--input-color);
     background-color: var(--input-bg);
@@ -208,15 +190,6 @@
     overflow: auto;
   }
 
-  .container {
-    margin: 0;
-    padding-top: 10vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    text-align: center;
-  }
-
   .logo {
     height: 6em;
     padding: 1.5em;
@@ -249,16 +222,12 @@
     text-align: center;
   }
 
-  input,
+  /* input, */
   .button {
     border-radius: 8px;
     border: 1px solid transparent;
-    /* padding: 0.6em 1.2em; */
-    /* font-size: 1em; */
-    /* font-weight: 500; */
-    /* font-family: inherit; */
-    /* transition: border-color 0.25s; */
     box-shadow: 0 2px 2px var(--shadow-color);
+    outline: none;
   }
 
   .button {
@@ -271,11 +240,6 @@
   .button:active {
     border-color: #396cd8;
     background-color: #e8e8e8;
-  }
-
-  input,
-  .button {
-    outline: none;
   }
 
   #greet-input {
@@ -309,12 +273,12 @@
     @apply transition-colors duration-200;
   }
 
-  input[type='text'] {
+  /* input[type='text'] {
     padding: 0.5rem;
     border-radius: 0.375rem;
     font-size: 0.875rem;
     width: 100%;
-  }
+  } */
 
   label {
     font-size: 0.875rem;
@@ -614,13 +578,6 @@
       padding: 0.25rem;
       gap: 0.25rem;
     }
-    .directory-panel,
-    .side-panel {
-    }
-    .output-panel,
-    .config-panel {
-      /* padding: 0.5rem; */
-    }
     .output-header,
     .config-header {
       flex-direction: column;
@@ -648,14 +605,14 @@
   }
 
   /* Base input styling */
-  input[type='text'] {
+  /* input[type='text'] {
     border-radius: 0.375rem;
     border: 1px solid var(--input-border-color);
     background-color: var(--input-bg);
     color: var(--input-color);
     padding: 0.5rem;
     font-size: 0.875rem;
-  }
+  } */
   input[type='checkbox'] {
     border-radius: 0.25rem;
     border: 1px solid var(--input-border-color);
