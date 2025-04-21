@@ -112,42 +112,42 @@ function App() {
     }
   }, [setSettings, log, sendErrorMessage]);
 
-  const checkLastDirectory = useCallback(async (loadedSettings: AppSettings | null): Promise<boolean> => {
-    clearMessages();
-    try {
-      const result = await invoke<CommandResult<SessionState>>("get_session_state");
+  // const checkLastDirectory = useCallback(async (loadedSettings: AppSettings | null): Promise<boolean> => {
+  //   clearMessages();
+  //   try {
+  //     const result = await invoke<CommandResult<SessionState>>("get_session_state");
 
-      if (result.success && result.data) {
-        const { lastDirectory, lastConfigMode } = result.data;
-        if (lastConfigMode === 'global' || lastConfigMode === 'local') {
-          setInitialConfigModePreference(lastConfigMode);
-          log(`Retrieved last config mode preference: ${lastConfigMode}`, 'debug');
-        } else {
-          setInitialConfigModePreference(null);
-        }
+  //     if (result.success && result.data) {
+  //       const { lastDirectory, lastConfigMode } = result.data;
+  //       if (lastConfigMode === 'global' || lastConfigMode === 'local') {
+  //         setInitialConfigModePreference(lastConfigMode);
+  //         log(`Retrieved last config mode preference: ${lastConfigMode}`, 'debug');
+  //       } else {
+  //         setInitialConfigModePreference(null);
+  //       }
 
-        if (lastDirectory) {
-          const path = lastDirectory;
-          log(`Found last directory: ${path}`, 'debug');
-          setCurrentDirectory(path);
-          await loadDirectory(path, loadedSettings, lastConfigMode === 'global' || lastConfigMode === 'local' ? lastConfigMode : null);
-          return true;
-        } else {
-          log('No last directory path found in session state.', 'debug');
-          return false;
-        }
-      } else if (result.error) {
-        log(`Error loading last session state: ${result.error}`, 'warn');
-      } else {
-        log('No last session state data returned.', 'debug');
-      }
-      return false;
-    } catch (err) {
-      log(`Error invoking get_session_state: ${err}`, 'error');
-      setError(`Error checking last session state: ${err}`);
-      return false;
-    }
-  }, [log, setError, clearMessages]);
+  //       if (lastDirectory) {
+  //         const path = lastDirectory;
+  //         log(`Found last directory: ${path}`, 'debug');
+  //         setCurrentDirectory(path);
+  //         await loadDirectory(path, loadedSettings, lastConfigMode === 'global' || lastConfigMode === 'local' ? lastConfigMode : null);
+  //         return true;
+  //       } else {
+  //         log('No last directory path found in session state.', 'debug');
+  //         return false;
+  //       }
+  //     } else if (result.error) {
+  //       log(`Error loading last session state: ${result.error}`, 'warn');
+  //     } else {
+  //       log('No last session state data returned.', 'debug');
+  //     }
+  //     return false;
+  //   } catch (err) {
+  //     log(`Error invoking get_session_state: ${err}`, 'error');
+  //     setError(`Error checking last session state: ${err}`);
+  //     return false;
+  //   }
+  // }, [log, setError, clearMessages]);
 
   const handleSelectDirectory = useCallback(async (loadedSettings: AppSettings | null): Promise<boolean> => {
     clearMessages();
