@@ -33,7 +33,7 @@ jobs:
           LATEST_JSON=$(curl -s https://api.github.com/repos/$REPO/releases/latest)
 
           get_download_url() {
-            echo "$LATEST_JSON" | grep "browser_download_url" | grep "$1" | cut -d '\'"\'' -f 4
+            echo "$LATEST_JSON" | grep "browser_download_url" | grep "$1" | cut -d \'"\' -f 4
           }
 
           get_deb() {
