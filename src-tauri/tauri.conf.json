@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "GPTree",
+  "version": "0.1.3",
+  "identifier": "app.gptree",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "GPTree",
+        "width": 1000,
+        "height": 800
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "copyright": "Copyright (c) 2025 Mapache Dev",
+    "category": "Utility",
+    "shortDescription": "A tool to provide LLM context for coding projects by combining project files into a single text file (or clipboard text) with directory tree structure.",
+    "longDescription": "A tool to provide LLM context for coding projects by combining project files into a single text file (or clipboard text) with directory tree structure."
+  }
+}
