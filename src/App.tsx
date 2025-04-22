@@ -18,7 +18,7 @@ import { sendSignal } from './hooks/signalEmitter';
 import { settingsAtom } from './lib/store/atoms';
 import { useAtom } from 'jotai';
 
-const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
+const DEFAULT_DIRECTORY = import.meta.env.VITE_DEFAULT_DIRECTORY || '';
 
 // Define a default config object based on the Config interface
 const defaultConfig: Config = {

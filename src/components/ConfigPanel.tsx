@@ -38,15 +38,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     onConfigChange(field, value);
   };
 
-  // Handle exclude file types (comma-separated list)
-  // const handleExcludeFileTypesChange = (value: string) => {
-  //   const fileTypes = value
-  //     .split(',')
-  //     .map(type => type.trim())
-  //     .filter(type => type.length > 0);
-  //   onConfigChange('exclude_file_types', fileTypes);
-  // };
-
   // Bail out if no config is provided
   if (!config) {
     return (
