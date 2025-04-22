@@ -318,9 +318,15 @@ function App() {
   const handleSaveConfig = async () => {
     if (!config || !isConfigPanelDirty) return;
 
+    // Keep track if loading should stop after save or after refresh
+    let shouldStopLoadingAfterSave = true;
+
     try {
       startLoading();
       clearMessages();
+
+      // Store the original config *before* saving for comparison
+      const originalConfigForComparison = originalConfigRef.current ? { ...originalConfigRef.current } : null;
 
       const result = await invoke<{ success: boolean; error?: string | AppError }>(
         "update_config",
@@ -339,23 +345,28 @@ function App() {
         sendSuccessMessage("Configuration saved", 2000);
 
         // Check if any file filtering settings have changed compared to the *original* config
-        const original = originalConfigRef.current;
-        const fileFilteringChanged = original && (
-          config.include_file_types !== original.include_file_types ||
-          config.exclude_file_types.join(',') !== original.exclude_file_types.join(',') ||
-          config.use_git_ignore !== original.use_git_ignore ||
-          config.show_ignored_in_tree !== original.show_ignored_in_tree ||
-          config.show_default_ignored_in_tree !== original.show_default_ignored_in_tree
+        const fileFilteringChanged = originalConfigForComparison && (
+          config.include_file_types !== originalConfigForComparison.include_file_types ||
+          config.exclude_file_types.join(',') !== originalConfigForComparison.exclude_file_types.join(',') ||
+          config.use_git_ignore !== originalConfigForComparison.use_git_ignore ||
+          config.show_ignored_in_tree !== originalConfigForComparison.show_ignored_in_tree ||
+          config.show_default_ignored_in_tree !== originalConfigForComparison.show_default_ignored_in_tree
         );
 
-        // Refresh directory tree if file filtering settings have changed
+        // Refresh directory tree *after a delay* if file filtering settings have changed
         if (fileFilteringChanged && currentDirectory) {
-          log('File filtering settings changed, refreshing directory tree', 'debug');
-          try {
-            await loadDirectory(currentDirectory, settings, configMode as 'global' | 'local');
-          } catch (err) {
-            log(`Error refreshing directory tree: ${err}`, 'error');
-          }
+          shouldStopLoadingAfterSave = false; // Loading will stop after refresh
+          log('File filtering settings changed, refreshing directory tree after 1s delay...', 'debug');
+          setTimeout(async () => {
+            try {
+              await loadDirectory(currentDirectory, settings, configMode as 'global' | 'local');
+            } catch (err) {
+              log(`Error refreshing directory tree: ${err}`, 'error');
+              setError(`Error refreshing directory tree: ${err}`); // Show error to user
+            } finally {
+              stopLoading(); // Stop loading after refresh attempt
+            }
+          }, 1000); // 1 second delay
         }
       } else if (result.error) {
         const errorMsg = typeof result.error === 'object' && result.error !== null ? JSON.stringify(result.error) : result.error;
@@ -366,7 +377,10 @@ function App() {
       sendErrorMessage(`Error saving configuration: ${err}`);
       // Do not reset dirty state on error
     } finally {
-      stopLoading();
+      // Stop loading only if refresh isn't scheduled
+      if (shouldStopLoadingAfterSave) {
+        stopLoading();
+      }
     }
   };
 

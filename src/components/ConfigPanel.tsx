@@ -39,13 +39,13 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
   };
 
   // Handle exclude file types (comma-separated list)
-  const handleExcludeFileTypesChange = (value: string) => {
-    const fileTypes = value
-      .split(',')
-      .map(type => type.trim())
-      .filter(type => type.length > 0);
-    onConfigChange('exclude_file_types', fileTypes);
-  };
+  // const handleExcludeFileTypesChange = (value: string) => {
+  //   const fileTypes = value
+  //     .split(',')
+  //     .map(type => type.trim())
+  //     .filter(type => type.length > 0);
+  //   onConfigChange('exclude_file_types', fileTypes);
+  // };
 
   // Bail out if no config is provided
   if (!config) {
@@ -185,7 +185,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
               type="text"
               id="exclude-file-types"
               value={config.exclude_file_types.join(',')}
-              onChange={(e) => handleExcludeFileTypesChange(e.target.value)}
+              // onChange={(e) => handleExcludeFileTypesChange(e.target.value)}
+              onChange={(e) => handleTextChange('exclude_file_types', e.target.value)}
               placeholder=".log,.tmp,..."
               disabled={disabled}
               className="w-full"
