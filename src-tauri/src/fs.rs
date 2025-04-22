@@ -52,7 +52,7 @@ pub fn generate_tree_structure(
     show_ignored: bool,
     show_default_ignored: bool,
     include_file_types: &str,
-    exclude_file_types: &[String],
+    exclude_file_types: &str,
 ) -> Result<TreeStructure, AppError> {
     // Load gitignore if requested
     let gitignore = if use_gitignore {
@@ -75,8 +75,9 @@ pub fn generate_tree_structure(
 
     // Convert exclude_file_types to a set for efficient lookups
     let excluded_extensions: HashSet<String> = exclude_file_types
-        .iter()
+        .split(',')
         .map(|ext| ext.trim().to_lowercase())
+        .filter(|ext| !ext.is_empty())
         .collect();
 
     // Helper function to check if a file should be included based on its extension
@@ -292,7 +293,7 @@ pub fn get_directory_tree(
     show_ignored: bool,
     show_default_ignored: bool,
     include_file_types: &str,
-    exclude_file_types: &[String],
+    exclude_file_types: &str,
 ) -> Result<DirectoryItem, AppError> {
     // Load gitignore if requested
     let gitignore = if use_gitignore {
@@ -315,8 +316,9 @@ pub fn get_directory_tree(
 
     // Convert exclude_file_types to a set for efficient lookups
     let excluded_extensions: HashSet<String> = exclude_file_types
-        .iter()
+        .split(',')
         .map(|ext| ext.trim().to_lowercase())
+        .filter(|ext| !ext.is_empty())
         .collect();
 
     // Helper function to check if a file should be included based on its extension

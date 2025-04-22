@@ -25,7 +25,7 @@ const defaultConfig: Config = {
   version: 2, // Match CONFIG_VERSION from Rust
   use_git_ignore: true,
   include_file_types: "*",
-  exclude_file_types: [],
+  exclude_file_types: "",
   output_file: "gptree_output.txt",
   save_output_file: true,
   output_file_locally: true,
@@ -347,7 +347,7 @@ function App() {
         // Check if any file filtering settings have changed compared to the *original* config
         const fileFilteringChanged = originalConfigForComparison && (
           config.include_file_types !== originalConfigForComparison.include_file_types ||
-          config.exclude_file_types.join(',') !== originalConfigForComparison.exclude_file_types.join(',') ||
+          config.exclude_file_types !== originalConfigForComparison.exclude_file_types ||
           config.use_git_ignore !== originalConfigForComparison.use_git_ignore ||
           config.show_ignored_in_tree !== originalConfigForComparison.show_ignored_in_tree ||
           config.show_default_ignored_in_tree !== originalConfigForComparison.show_default_ignored_in_tree
@@ -604,7 +604,7 @@ function App() {
   // Check if file type filtering is active
   const isFilterActive = config && (
     config.include_file_types !== "*" ||
-    (config.include_file_types === "*" && config.exclude_file_types.length > 0)
+    (config.include_file_types === "*" && config.exclude_file_types.split(',').filter(Boolean).length > 0)
   );
 
   // Get human-readable filter description
@@ -612,8 +612,8 @@ function App() {
     if (!config) return '';
 
     if (config.include_file_types === "*") {
-      if (config.exclude_file_types.length > 0) {
-        return `Excluding: ${config.exclude_file_types.join(', ')}`;
+      if (config.exclude_file_types.split(',').filter(Boolean).length > 0) {
+        return `Excluding: ${config.exclude_file_types.split(',').filter(Boolean).join(', ')}`;
       }
       return 'All files';
     } else {

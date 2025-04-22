@@ -11,7 +11,7 @@ export interface Config {
   version: number;
   use_git_ignore: boolean;
   include_file_types: string;
-  exclude_file_types: string[];
+  exclude_file_types: string;
   output_file: string;
   save_output_file: boolean;
   output_file_locally: boolean;

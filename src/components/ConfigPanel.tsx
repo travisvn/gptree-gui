@@ -184,8 +184,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <Input
               type="text"
               id="exclude-file-types"
-              value={config.exclude_file_types.join(',')}
-              // onChange={(e) => handleExcludeFileTypesChange(e.target.value)}
+              value={config.exclude_file_types}
               onChange={(e) => handleTextChange('exclude_file_types', e.target.value)}
               placeholder=".log,.tmp,..."
               disabled={disabled}

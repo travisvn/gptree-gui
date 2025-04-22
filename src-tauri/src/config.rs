@@ -84,11 +84,7 @@ fn load_config(config_path: &Path) -> Result<Config, AppError> {
                     config.include_file_types = value.to_string();
                 }
                 "excludeFileTypes" => {
-                    config.exclude_file_types = if value.is_empty() {
-                        Vec::new()
-                    } else {
-                        value.split(',').map(|s| s.trim().to_string()).collect()
-                    };
+                    config.exclude_file_types = value.to_string();
                 }
                 "outputFile" => {
                     config.output_file = value.to_string();
@@ -173,11 +169,7 @@ pub fn save_config(config_path: &Path, config: &Config, is_global: bool) -> Resu
             .and_then(|_| writeln!(file, "# File types to include (e.g., .py,.js)"))
             .and_then(|_| writeln!(file, "includeFileTypes: {}", config.include_file_types))
             .and_then(|_| writeln!(file, "# File types to exclude when includeFileTypes is '*'"))
-            .and_then(|_| writeln!(
-                file,
-                "excludeFileTypes: {}",
-                config.exclude_file_types.join(",")
-            ))
+            .and_then(|_| writeln!(file, "excludeFileTypes: {}", config.exclude_file_types))
             .and_then(|_| writeln!(file, "# Output file name"))
             .and_then(|_| writeln!(file, "outputFile: {}", config.output_file))
             .and_then(|_| writeln!(file, "# Whether to save the output file at all"))
