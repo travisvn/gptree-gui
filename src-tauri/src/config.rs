@@ -134,72 +134,126 @@ fn load_config(config_path: &Path) -> Result<Config, AppError> {
 
 /// Save a configuration to a file
 pub fn save_config(config_path: &Path, config: &Config, is_global: bool) -> Result<(), AppError> {
-    let mut file = File::create(config_path)
-        .map_err(|e| AppError::Config(format!("Failed to create config file: {}", e)))?;
+    println!(
+        "[GPTree] Attempting to save {} config to: {:?}",
+        if is_global { "global" } else { "local" },
+        config_path
+    );
 
-    writeln!(
-        file,
-        "# GPTree {} Config",
-        if is_global { "Global" } else { "Local" }
-    )?;
-    writeln!(file, "version: {}", config.version)?;
-    writeln!(file, "# Whether to use .gitignore")?;
-    writeln!(file, "useGitIgnore: {}", config.use_git_ignore)?;
-    writeln!(file, "# File types to include (e.g., .py,.js)")?;
-    writeln!(file, "includeFileTypes: {}", config.include_file_types)?;
-    writeln!(file, "# File types to exclude when includeFileTypes is '*'")?;
-    writeln!(
-        file,
-        "excludeFileTypes: {}",
-        config.exclude_file_types.join(",")
-    )?;
-    writeln!(file, "# Output file name")?;
-    writeln!(file, "outputFile: {}", config.output_file)?;
-    writeln!(file, "# Whether to save the output file at all")?;
-    writeln!(file, "saveOutputFile: {}", config.save_output_file)?;
-    writeln!(
-        file,
-        "# Whether to output the file locally or relative to the project directory"
-    )?;
-    writeln!(file, "outputFileLocally: {}", config.output_file_locally)?;
-    writeln!(file, "# Whether to copy the output to the clipboard")?;
-    writeln!(file, "copyToClipboard: {}", config.copy_to_clipboard)?;
-    writeln!(
-        file,
-        "# Whether to use safe mode (prevent overly large files from being combined)"
-    )?;
-    writeln!(file, "safeMode: {}", config.safe_mode)?;
-    writeln!(
-        file,
-        "# Whether to store the files chosen in the config file (--save, -s)"
-    )?;
-    writeln!(file, "storeFilesChosen: {}", config.store_files_chosen)?;
-    writeln!(
-        file,
-        "# Whether to include line numbers in the output (--line-numbers, -n)"
-    )?;
-    writeln!(file, "lineNumbers: {}", config.line_numbers)?;
-    writeln!(
-        file,
-        "# Whether to show ignored files in the directory tree"
-    )?;
-    writeln!(file, "showIgnoredInTree: {}", config.show_ignored_in_tree)?;
-    writeln!(file, "# Whether to show only default ignored files in the directory tree while still respecting gitignore")?;
-    writeln!(
-        file,
-        "showDefaultIgnoredInTree: {}",
-        config.show_default_ignored_in_tree
-    )?;
-
-    if !is_global {
-        writeln!(
-            file,
-            "# Previously selected files (when using the -s or --save flag previously)"
-        )?;
-        writeln!(file, "previousFiles: {}", config.previous_files.join(","))?;
+    // Ensure parent directory exists
+    if let Some(parent) = config_path.parent() {
+        if !parent.exists() {
+            match std::fs::create_dir_all(parent) {
+                Ok(_) => println!("[GPTree] Created parent directory: {:?}", parent),
+                Err(e) => {
+                    let err_msg = format!("Failed to create parent directory: {}", e);
+                    println!("[GPTree] Error: {}", err_msg);
+                    return Err(AppError::Config(err_msg));
+                }
+            }
+        }
     }
 
-    Ok(())
+    // Attempt to create and write to the file
+    let file_result = File::create(config_path);
+
+    match file_result {
+        Ok(mut file) => {
+            println!("[GPTree] Successfully opened file for writing");
+
+            // Write the config data
+            let write_result = writeln!(
+                file,
+                "# GPTree {} Config",
+                if is_global { "Global" } else { "Local" }
+            )
+            .and_then(|_| writeln!(file, "version: {}", config.version))
+            .and_then(|_| writeln!(file, "# Whether to use .gitignore"))
+            .and_then(|_| writeln!(file, "useGitIgnore: {}", config.use_git_ignore))
+            .and_then(|_| writeln!(file, "# File types to include (e.g., .py,.js)"))
+            .and_then(|_| writeln!(file, "includeFileTypes: {}", config.include_file_types))
+            .and_then(|_| writeln!(file, "# File types to exclude when includeFileTypes is '*'"))
+            .and_then(|_| writeln!(
+                file,
+                "excludeFileTypes: {}",
+                config.exclude_file_types.join(",")
+            ))
+            .and_then(|_| writeln!(file, "# Output file name"))
+            .and_then(|_| writeln!(file, "outputFile: {}", config.output_file))
+            .and_then(|_| writeln!(file, "# Whether to save the output file at all"))
+            .and_then(|_| writeln!(file, "saveOutputFile: {}", config.save_output_file))
+            .and_then(|_| writeln!(
+                file,
+                "# Whether to output the file locally or relative to the project directory"
+            ))
+            .and_then(|_| writeln!(file, "outputFileLocally: {}", config.output_file_locally))
+            .and_then(|_| writeln!(file, "# Whether to copy the output to the clipboard"))
+            .and_then(|_| writeln!(file, "copyToClipboard: {}", config.copy_to_clipboard))
+            .and_then(|_| writeln!(
+                file,
+                "# Whether to use safe mode (prevent overly large files from being combined)"
+            ))
+            .and_then(|_| writeln!(file, "safeMode: {}", config.safe_mode))
+            .and_then(|_| writeln!(
+                file,
+                "# Whether to store the files chosen in the config file (--save, -s)"
+            ))
+            .and_then(|_| writeln!(file, "storeFilesChosen: {}", config.store_files_chosen))
+            .and_then(|_| writeln!(
+                file,
+                "# Whether to include line numbers in the output (--line-numbers, -n)"
+            ))
+            .and_then(|_| writeln!(file, "lineNumbers: {}", config.line_numbers))
+            .and_then(|_| writeln!(
+                file,
+                "# Whether to show ignored files in the directory tree"
+            ))
+            .and_then(|_| writeln!(file, "showIgnoredInTree: {}", config.show_ignored_in_tree))
+            .and_then(|_| writeln!(file, "# Whether to show only default ignored files in the directory tree while still respecting gitignore"))
+            .and_then(|_| writeln!(
+                file,
+                "showDefaultIgnoredInTree: {}",
+                config.show_default_ignored_in_tree
+            ));
+
+            // Add previous files only for local config
+            if !is_global {
+                let previous_files_result = writeln!(
+                    file,
+                    "# Previously selected files (when using the -s or --save flag previously)"
+                )
+                .and_then(|_| writeln!(file, "previousFiles: {}", config.previous_files.join(",")));
+
+                if let Err(e) = previous_files_result {
+                    let err_msg = format!("Failed to write previous files to config file: {}", e);
+                    println!("[GPTree] Error: {}", err_msg);
+                    return Err(AppError::Config(err_msg));
+                }
+            }
+
+            match write_result {
+                Ok(_) => {
+                    println!("[GPTree] Successfully wrote config to file");
+                    Ok(())
+                }
+                Err(e) => {
+                    let err_msg = format!("Failed to write to config file: {}", e);
+                    println!("[GPTree] Error: {}", err_msg);
+                    Err(AppError::Config(err_msg))
+                }
+            }
+        }
+        Err(e) => {
+            let err_msg = format!("Failed to create config file: {}", e);
+            println!("[GPTree] Error: {}", err_msg);
+
+            // If we couldn't open the file, run the diagnostics
+            let diagnosis = diagnose_config_file_access(config_path);
+            println!("[GPTree] File diagnostics:\n{}", diagnosis);
+
+            Err(AppError::Config(err_msg))
+        }
+    }
 }
 
 /// Update the previous files list in the configuration
@@ -284,4 +338,128 @@ pub fn save_session_state(
     let path = get_session_state_path(app_handle)?;
     let content = serde_json::to_string_pretty(state).map_err(|e| AppError::Json(e.to_string()))?;
     fs::write(&path, content).map_err(AppError::Io) // Use shorthand
+}
+
+/// Helper function to ensure a config is properly saved
+/// Returns the path where the config was saved if successful
+pub fn ensure_config_saved(
+    config: &Config,
+    is_global: bool,
+    current_dir: Option<&Path>,
+) -> Result<PathBuf, AppError> {
+    let config_path = if is_global {
+        let home_dir = dirs::home_dir()
+            .ok_or_else(|| AppError::Config("Could not find home directory".to_string()))?;
+        home_dir.join(GLOBAL_CONFIG_FILE)
+    } else {
+        if let Some(dir) = current_dir {
+            dir.join(PROJECT_CONFIG_FILE)
+        } else {
+            return Err(AppError::Config(
+                "Current directory required for local config".to_string(),
+            ));
+        }
+    };
+
+    // Ensure parent directory exists (should always be the case but just to be safe)
+    if let Some(parent) = config_path.parent() {
+        if !parent.exists() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                AppError::Config(format!("Failed to create config directory: {}", e))
+            })?;
+        }
+    }
+
+    // Save the config
+    save_config(&config_path, config, is_global)?;
+
+    Ok(config_path)
+}
+
+/// Helper function to diagnose config file permissions
+/// Returns a diagnostic message about the file path and permissions
+pub fn diagnose_config_file_access(file_path: &Path) -> String {
+    let mut result = format!("Path: {:?}\n", file_path);
+
+    // Check if file exists
+    if file_path.exists() {
+        result.push_str("File exists: Yes\n");
+
+        // Check if we can read it
+        match std::fs::metadata(file_path) {
+            Ok(metadata) => {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let permissions = metadata.permissions();
+                    let mode = permissions.mode();
+                    result.push_str(&format!("Permissions (octal): {:o}\n", mode));
+
+                    // Interpret the permission bits
+                    let read = mode & 0o400 != 0;
+                    let write = mode & 0o200 != 0;
+                    result.push_str(&format!("User read: {}, User write: {}\n", read, write));
+                }
+
+                #[cfg(not(unix))]
+                {
+                    let permissions = metadata.permissions();
+                    result.push_str(&format!("Permissions: {:?}\n", permissions));
+                    result.push_str(&format!("Read-only: {}\n", permissions.readonly()));
+                }
+            }
+            Err(e) => {
+                result.push_str(&format!("Error getting metadata: {}\n", e));
+            }
+        }
+
+        // Try to read the file
+        match std::fs::read_to_string(file_path) {
+            Ok(_) => result.push_str("Can read file: Yes\n"),
+            Err(e) => result.push_str(&format!("Can read file: No - {}\n", e)),
+        }
+
+        // Try to write to a temporary file in the same directory
+        if let Some(parent) = file_path.parent() {
+            let temp_path = parent.join("gptree_test_write.tmp");
+            match std::fs::write(&temp_path, "test") {
+                Ok(_) => {
+                    result.push_str(&format!("Can write to directory: Yes\n"));
+                    // Clean up
+                    let _ = std::fs::remove_file(&temp_path);
+                }
+                Err(e) => result.push_str(&format!("Can write to directory: No - {}\n", e)),
+            }
+        } else {
+            result.push_str("File has no parent directory\n");
+        }
+    } else {
+        result.push_str("File exists: No\n");
+
+        // Check if parent directory exists and is writable
+        if let Some(parent) = file_path.parent() {
+            if parent.exists() {
+                result.push_str(&format!("Parent directory exists: Yes\n"));
+
+                // Try to write to a temporary file in the parent directory
+                let temp_path = parent.join("gptree_test_write.tmp");
+                match std::fs::write(&temp_path, "test") {
+                    Ok(_) => {
+                        result.push_str(&format!("Can write to parent directory: Yes\n"));
+                        // Clean up
+                        let _ = std::fs::remove_file(&temp_path);
+                    }
+                    Err(e) => {
+                        result.push_str(&format!("Can write to parent directory: No - {}\n", e))
+                    }
+                }
+            } else {
+                result.push_str(&format!("Parent directory exists: No\n"));
+            }
+        } else {
+            result.push_str("File has no parent directory\n");
+        }
+    }
+
+    result
 }

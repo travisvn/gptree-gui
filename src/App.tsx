@@ -205,6 +205,28 @@ function App() {
           }
         }
 
+        // Create configs if needed and update the backend about our mode choice
+        if ((initialMode === 'local' && !localExists) || (initialMode === 'global' && !globalExists)) {
+          log(`Selected config mode '${initialMode}' doesn't exist, creating it`, 'debug');
+          try {
+            const switchResult = await invoke<CommandResult<boolean>>('set_config_mode', { mode: initialMode });
+            if (!switchResult.success) {
+              log(`Failed to create missing config: ${switchResult.error}`, 'error');
+              // Continue with existing mode
+            }
+          } catch (e) {
+            log(`Error calling set_config_mode to create missing config: ${e}`, 'error');
+            // Continue with existing mode
+          }
+        } else {
+          // Even if both configs exist, we should still update the backend
+          try {
+            await invoke('set_config_mode', { mode: initialMode });
+          } catch (e) {
+            log(`Error updating backend config mode: ${e}`, 'warn');
+          }
+        }
+
         setConfigMode(initialMode);
         const activeConfig = initialMode === 'global' ? result.data.global : result.data.local;
         setConfig(activeConfig || null);
@@ -359,11 +381,21 @@ function App() {
       setConfigMode(mode);
 
       try {
-        log(`Persisting config mode choice via global config: ${mode}`, 'debug');
-        await invoke('set_last_config_mode', { mode: mode });
+        log(`Setting config mode on backend to: ${mode}`, 'debug');
+        // Call set_config_mode to update the backend state and create config if needed
+        const result = await invoke<CommandResult<boolean>>('set_config_mode', { mode: mode });
+
+        if (!result.success) {
+          log(`Failed to set config mode: ${result.error}`, 'error');
+          sendErrorMessage(`Failed to set config mode: ${result.error}`);
+          return;
+        }
+
         setInitialConfigModePreference(mode);
       } catch (persistError) {
-        log(`Failed to persist config mode choice: ${persistError}`, 'error');
+        log(`Failed to set config mode: ${persistError}`, 'error');
+        sendErrorMessage(`Failed to set config mode: ${persistError}`);
+        return;
       }
 
       const newActiveConfig = mode === 'local' ? (localConfig || globalConfig) : (globalConfig || localConfig);

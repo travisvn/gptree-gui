@@ -64,11 +64,20 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
   const handleSave = async () => {
     if (!modifiedConfig || !isDirty || disabled) return;
     try {
+      // Log what we're about to save for debugging
+      console.log('Saving config:', JSON.parse(JSON.stringify(modifiedConfig)));
+
       await onConfigUpdate(modifiedConfig); // Call the async update function
       handleDirtyChange(false); // Reset dirty state only on success
     } catch (error) {
       console.error("Failed to save config:", error);
-      // Optionally show an error message to the user
+      // Try to get more diagnostic information
+      try {
+        const isGlobal = window.location.pathname.includes('global');
+        console.error("Config mode appears to be:", isGlobal ? "global" : "local");
+      } catch (e) {
+        console.error("Unable to determine diagnostic info:", e);
+      }
     }
   };
 

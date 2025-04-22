@@ -176,26 +176,24 @@ async fn update_config(
     let config_mode = *state.config_mode.lock().unwrap();
     let current_dir = state.current_dir.lock().unwrap().clone();
 
-    // Determine config path based on mode
-    let config_path = match config_mode {
-        ConfigMode::LocalOverride => Ok::<PathBuf, AppError>(current_dir.join(".gptree_config")),
-        ConfigMode::Global => {
-            // Use ? to propagate AppError directly
-            let home_dir = dirs::home_dir()
-                .ok_or_else(|| AppError::Config("Could not find home directory".to_string()))?;
-            Ok::<PathBuf, AppError>(home_dir.join(".gptreerc"))
-        }
+    // Use the more reliable helper function
+    let is_global = config_mode == ConfigMode::Global;
+    let current_dir_ref = if is_global {
+        None
+    } else {
+        Some(current_dir.as_path())
     };
 
-    // If getting the path failed, config_path is Err. Propagate it.
-    let config_path = config_path?;
-
-    // Save the config
-    let is_global = config_mode == ConfigMode::Global;
-    config::save_config(&config_path, &config, is_global)?;
-
-    // If save_config succeeds, return success
-    Ok(CommandResult::success(true))
+    match config::ensure_config_saved(&config, is_global, current_dir_ref) {
+        Ok(saved_path) => {
+            eprintln!("[GPTree] Successfully saved config to {:?}", saved_path);
+            Ok(CommandResult::success(true))
+        }
+        Err(e) => {
+            eprintln!("[GPTree] Error saving config: {:?}", e);
+            Err(e)
+        }
+    }
 }
 
 // Command to generate output based on selected files
@@ -318,12 +316,59 @@ async fn get_session_state(
 async fn set_config_mode(
     mode: String,
     state: tauri::State<'_, AppState>,
+    app_handle: tauri::AppHandle,
 ) -> Result<CommandResult<bool>, String> {
+    let current_dir = state.current_dir.lock().unwrap().clone();
+
+    // Update config mode in state
     let mut config_mode = state.config_mode.lock().unwrap();
     *config_mode = match mode.as_str() {
         "local" => ConfigMode::LocalOverride,
         _ => ConfigMode::Global,
     };
+
+    // Create config file if it doesn't exist
+    match mode.as_str() {
+        "local" => {
+            if !current_dir.join(".gptree_config").exists() {
+                match config::load_or_create_project_config(&current_dir) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        return Ok(CommandResult::error(format!(
+                            "Failed to create local config: {}",
+                            e
+                        )))
+                    }
+                }
+            }
+        }
+        _ => {
+            // global
+            match config::load_or_create_global_config() {
+                Ok(_) => {}
+                Err(e) => {
+                    return Ok(CommandResult::error(format!(
+                        "Failed to create global config: {}",
+                        e
+                    )))
+                }
+            }
+        }
+    }
+
+    // Update session state
+    match config::load_session_state(&app_handle) {
+        Ok(mut state) => {
+            state.last_config_mode = Some(mode.clone());
+            if let Err(e) = config::save_session_state(&app_handle, &state) {
+                eprintln!("[GPTree] Warning: Failed to save session state: {}", e);
+            }
+        }
+        Err(e) => {
+            eprintln!("[GPTree] Warning: Failed to load session state: {}", e);
+        }
+    }
+
     Ok(CommandResult::success(true))
 }
 
@@ -506,6 +551,26 @@ async fn set_last_config_mode(
     }
 }
 
+// New command: diagnose_config_file
+#[tauri::command]
+async fn diagnose_config_file(
+    mode: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<CommandResult<String>, String> {
+    let current_dir = state.current_dir.lock().unwrap().clone();
+
+    let config_path = if mode == "local" {
+        current_dir.join(".gptree_config")
+    } else {
+        dirs::home_dir()
+            .ok_or_else(|| "Could not find home directory".to_string())?
+            .join(".gptreerc")
+    };
+
+    let diagnosis = config::diagnose_config_file_access(&config_path);
+    Ok(CommandResult::success(diagnosis))
+}
+
 // Main run function
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -535,7 +600,8 @@ pub fn run() {
             pick_save_path,
             get_app_settings,
             save_app_settings,
-            set_last_config_mode
+            set_last_config_mode,
+            diagnose_config_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
