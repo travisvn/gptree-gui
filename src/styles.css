@@ -1,5 +1,6 @@
 /* @import 'tailwindcss' important; */
 @import './base.css';
+@import './loading.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 /* @import 'tw-animate-css'; */

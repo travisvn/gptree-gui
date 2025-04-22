@@ -709,8 +709,10 @@ function App() {
       </div>
 
       {showLoadingIndicator && (
-        <div className="absolute inset-0 bg-black/30 z-40 flex items-center justify-center backdrop-blur-sm">
-          <p className="text-white text-xl font-semibold">Loading...</p>
+        <div className="absolute inset-0 bg-black/30 z-40 flex flex-col items-center gap-8 justify-center backdrop-blur-sm">
+          <div className="text-xl font-semibold">Loading</div>
+
+          <div className="loader"></div>
         </div>
       )}
 
