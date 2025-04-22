@@ -21,6 +21,8 @@ pub fn combine_files_with_structure(
         config.use_git_ignore,
         config.show_ignored_in_tree,
         config.show_default_ignored_in_tree,
+        &config.include_file_types,
+        &config.exclude_file_types,
     )?;
 
     combined_content.push("# Project Directory Structure:".to_string());

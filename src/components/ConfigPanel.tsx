@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Bug, CaretDown, CaretRight, FloppyDisk, ArrowCounterClockwise } from '@phosphor-icons/react';
 import { useAtom } from 'jotai';
 import { debugEnabledAtom } from '../lib/store/atoms';
@@ -7,97 +7,48 @@ import { cn } from '../lib/utils'; // Assuming cn is utility for classnames
 import { Input } from './ui/input';
 
 interface ConfigPanelProps {
-  config: ConfigType | null; // Allow null config
-  onConfigUpdate: (config: ConfigType) => Promise<void>; // Make async to handle backend update
+  config: ConfigType | null; // Now receives the actual config, not just initial
+  onConfigChange: (field: keyof ConfigType, value: any) => void; // Sends changes up
+  onSave: () => Promise<void>; // Parent handles save
+  onReset: () => void; // Parent handles reset
+  isDirty: boolean; // Parent tells us if form is dirty
   disabled: boolean;
   className?: string;
-  onDirtyChange?: (isDirty: boolean) => void; // Callback for dirty state
 }
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({
-  config: initialConfig, // Rename prop to avoid conflict
-  onConfigUpdate,
+  config,
+  onConfigChange,
+  onSave,
+  onReset,
+  isDirty,
   disabled,
-  className = "",
-  onDirtyChange
+  className = ""
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [debugEnabled, setDebugEnabled] = useAtom(debugEnabledAtom);
 
-  // Local state for modifications
-  const [modifiedConfig, setModifiedConfig] = useState<ConfigType | null>(initialConfig);
-  const [isDirty, setIsDirty] = useState(false);
-
-  // Effect to reset local state when initialConfig changes (e.g., mode switch)
-  useEffect(() => {
-    setModifiedConfig(initialConfig);
-    setIsDirty(false);
-    onDirtyChange?.(false);
-  }, [initialConfig, onDirtyChange]);
-
-  // Inform parent component about dirty state changes
-  const handleDirtyChange = useCallback((dirty: boolean) => {
-    setIsDirty(dirty);
-    onDirtyChange?.(dirty);
-  }, [onDirtyChange]);
-
-
+  // Handle generic input changes (checkboxes)
   const handleChange = (field: keyof ConfigType, value: any) => {
-    if (!modifiedConfig) return; // Should not happen if panel is visible
-    setModifiedConfig(prevConfig => ({
-      ...(prevConfig as ConfigType), // Cast because we checked for null
-      [field]: value
-    }));
-    if (!isDirty) handleDirtyChange(true);
+    onConfigChange(field, value);
   };
 
+  // Handle text input changes
+  const handleTextChange = (field: keyof ConfigType, value: string) => {
+    onConfigChange(field, value);
+  };
+
+  // Handle exclude file types (comma-separated list)
   const handleExcludeFileTypesChange = (value: string) => {
-    if (!modifiedConfig) return;
     const fileTypes = value
       .split(',')
       .map(type => type.trim())
       .filter(type => type.length > 0);
-
-    handleChange('exclude_file_types', fileTypes);
+    onConfigChange('exclude_file_types', fileTypes);
   };
 
-  const handleSave = async () => {
-    if (!modifiedConfig || !isDirty || disabled) return;
-    try {
-      // Log what we're about to save for debugging
-      console.log('Saving config:', JSON.parse(JSON.stringify(modifiedConfig)));
-
-      await onConfigUpdate(modifiedConfig); // Call the async update function
-      handleDirtyChange(false); // Reset dirty state only on success
-    } catch (error) {
-      console.error("Failed to save config:", error);
-      // Try to get more diagnostic information
-      try {
-        const isGlobal = window.location.pathname.includes('global');
-        console.error("Config mode appears to be:", isGlobal ? "global" : "local");
-      } catch (e) {
-        console.error("Unable to determine diagnostic info:", e);
-      }
-    }
-  };
-
-  const handleReset = () => {
-    setModifiedConfig(initialConfig); // Revert to original config passed in props
-    handleDirtyChange(false);
-  };
-
-  // Use modifiedConfig for displaying values in inputs
-  const currentConfig = modifiedConfig!;
-
-  // Disable panel content if no config is loaded initially
-  if (!initialConfig) {
-    // Optionally render a loading or placeholder state
-    // For now, just returning null or an empty div might suffice
-    // Or disable the entire panel interaction more explicitly?
-    // Let's keep the structure but disable interactions if needed.
-    // The parent component (App.tsx) already handles showing placeholders when config is null.
-    // So, we just need to ensure `currentConfig` isn't accessed when null.
-    // Let's prevent rendering the form content if initialConfig is null.
+  // Bail out if no config is provided
+  if (!config) {
     return (
       <div
         className={`config-panel border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] overflow-hidden ${className} opacity-50 pointer-events-none`}
@@ -111,7 +62,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </div>
     );
   }
-
 
   return (
     <div
@@ -128,13 +78,13 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
           <h3 className="text-base m-0 ml-2">Configuration</h3>
           {isDirty && <span className="text-xs font-normal text-orange-500">(unsaved changes)</span>}
         </div>
-        {/* Save/Reset buttons */}
+        {/* Save/Reset buttons controlled by parent's isDirty state */}
         <div className="flex items-center gap-2">
           {(isDirty && !disabled) && (
             <>
               <div className="flex items-center gap-2 lg:mr-2">
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleReset(); }} // Prevent expansion toggle
+                  onClick={(e) => { e.stopPropagation(); onReset(); }}
                   className="button p-1.5 rounded-md bg-transparent border-none text-lg hover:bg-black/10 dark:hover:bg-white/10 m-0"
                   data-tooltip-id="small-tooltip"
                   data-tooltip-content="Reset Changes"
@@ -142,9 +92,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   <ArrowCounterClockwise size={16} weight="bold" />
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleSave(); }} // Prevent expansion toggle
+                  onClick={(e) => { e.stopPropagation(); onSave(); }}
                   className="button primary-button rounded-md text-xs/tight m-0 inline-flex items-center gap-1 text-white"
-                  // disabled={!isDirty || disabled}
                   data-tooltip-id="small-tooltip"
                   data-tooltip-content="Save Changes"
                 >
@@ -169,9 +118,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
           >
             <button
               className='button bg-error text-white px-2 py-1 rounded-md'
-
               onClick={() => {
-                // sendSignal('log', { message: 'test', level: 'info' });
                 setDebugEnabled(prev => !prev);
               }}
             >
@@ -185,7 +132,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <input
               type="checkbox"
               id="use-git-ignore"
-              checked={currentConfig.use_git_ignore}
+              checked={config.use_git_ignore}
               onChange={(e) => handleChange('use_git_ignore', e.target.checked)}
               disabled={disabled}
               className="cursor-pointer"
@@ -196,7 +143,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <input
               type="checkbox"
               id="show-ignored-in-tree"
-              checked={currentConfig.show_ignored_in_tree}
+              checked={config.show_ignored_in_tree}
               onChange={(e) => handleChange('show_ignored_in_tree', e.target.checked)}
               disabled={disabled}
               className="cursor-pointer"
@@ -207,9 +154,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <input
               type="checkbox"
               id="show-default-ignored-in-tree"
-              checked={currentConfig.show_default_ignored_in_tree}
+              checked={config.show_default_ignored_in_tree}
               onChange={(e) => handleChange('show_default_ignored_in_tree', e.target.checked)}
-              disabled={disabled || currentConfig.show_ignored_in_tree}
+              disabled={disabled || config.show_ignored_in_tree}
               className="cursor-pointer disabled:opacity-50"
             />
             <label htmlFor="show-default-ignored-in-tree" className="cursor-pointer">
@@ -225,8 +172,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <Input
               type="text"
               id="include-file-types"
-              value={currentConfig.include_file_types}
-              onChange={(e) => handleChange('include_file_types', e.target.value)}
+              value={config.include_file_types}
+              onChange={(e) => handleTextChange('include_file_types', e.target.value)}
               placeholder="* for all, or .py,.js,..."
               disabled={disabled}
               className="w-full"
@@ -237,7 +184,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <Input
               type="text"
               id="exclude-file-types"
-              value={currentConfig.exclude_file_types.join(',')}
+              value={config.exclude_file_types.join(',')}
               onChange={(e) => handleExcludeFileTypesChange(e.target.value)}
               placeholder=".log,.tmp,..."
               disabled={disabled}
@@ -253,8 +200,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <Input
               type="text"
               id="output-file"
-              value={currentConfig.output_file}
-              onChange={(e) => handleChange('output_file', e.target.value)}
+              value={config.output_file}
+              onChange={(e) => handleTextChange('output_file', e.target.value)}
               disabled={disabled}
               className="w-full"
             />
@@ -263,7 +210,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <input
               type="checkbox"
               id="save-output-file"
-              checked={currentConfig.save_output_file}
+              checked={config.save_output_file}
               onChange={(e) => handleChange('save_output_file', e.target.checked)}
               disabled={disabled}
               className="cursor-pointer"
@@ -274,18 +221,18 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <input
               type="checkbox"
               id="output-file-locally"
-              checked={currentConfig.output_file_locally}
+              checked={config.output_file_locally}
               onChange={(e) => handleChange('output_file_locally', e.target.checked)}
-              disabled={disabled || !currentConfig.save_output_file}
+              disabled={disabled || !config.save_output_file}
               className="cursor-pointer disabled:opacity-50"
             />
-            <label htmlFor="output-file-locally" className={`cursor-pointer ${!currentConfig.save_output_file ? 'opacity-50' : ''}`}>Save output in current working directory</label>
+            <label htmlFor="output-file-locally" className={`cursor-pointer ${!config.save_output_file ? 'opacity-50' : ''}`}>Save output in current working directory</label>
           </div>
           <div className="config-option flex items-center gap-2 mb-2">
             <input
               type="checkbox"
               id="copy-to-clipboard"
-              checked={currentConfig.copy_to_clipboard}
+              checked={config.copy_to_clipboard}
               onChange={(e) => handleChange('copy_to_clipboard', e.target.checked)}
               disabled={disabled}
               className="cursor-pointer"
@@ -296,7 +243,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <input
               type="checkbox"
               id="line-numbers"
-              checked={currentConfig.line_numbers}
+              checked={config.line_numbers}
               onChange={(e) => handleChange('line_numbers', e.target.checked)}
               disabled={disabled}
               className="cursor-pointer"
@@ -311,7 +258,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <input
               type="checkbox"
               id="safe-mode"
-              checked={currentConfig.safe_mode}
+              checked={config.safe_mode}
               onChange={(e) => handleChange('safe_mode', e.target.checked)}
               disabled={disabled}
               className="cursor-pointer"
@@ -324,7 +271,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             <input
               type="checkbox"
               id="store-files-chosen"
-              checked={currentConfig.store_files_chosen}
+              checked={config.store_files_chosen}
               onChange={(e) => handleChange('store_files_chosen', e.target.checked)}
               disabled={disabled}
               className="cursor-pointer"

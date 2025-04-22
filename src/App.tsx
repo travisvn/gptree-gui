@@ -20,11 +20,38 @@ import { useAtom } from 'jotai';
 
 const DEFAULT_DIRECTORY = '/Users/travis/Dev/2025/python/auto-job-hunting/auto-job-1';
 
+// Define a default config object based on the Config interface
+const defaultConfig: Config = {
+  version: 2, // Match CONFIG_VERSION from Rust
+  use_git_ignore: true,
+  include_file_types: "*",
+  exclude_file_types: [],
+  output_file: "gptree_output.txt",
+  save_output_file: true,
+  output_file_locally: true,
+  copy_to_clipboard: false,
+  safe_mode: true,
+  store_files_chosen: true,
+  line_numbers: false,
+  show_ignored_in_tree: false,
+  show_default_ignored_in_tree: false,
+  previous_files: [],
+};
+
 function App() {
   const [currentDirectory, setCurrentDirectory] = useState<string>("");
   const [directoryTree, setDirectoryTree] = useState<DirectoryItem | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-  const [config, setConfig] = useState<Config | null>(null);
+
+  // --- Config State Management in App.tsx ---
+  const [config, setConfig] = useState<Config | null>(null); // The active config being edited/displayed
+  const [globalConfig, setGlobalConfig] = useState<Config | null>(null); // Loaded global config
+  const [localConfig, setLocalConfig] = useState<Config | null>(null); // Loaded local config
+  const [configMode, setConfigMode] = useState<'global' | 'local' | string>('global');
+  const [isConfigPanelDirty, setIsConfigPanelDirty] = useState<boolean>(false);
+  const originalConfigRef = useRef<Config | null>(null); // Store the config state before edits
+  // -----------------------------------------
+
   const [output, setOutput] = useState<OutputContent | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,11 +67,6 @@ function App() {
     console.log('log', message, level);
     sendSignal('log', { message: message, level: level });
   }
-
-  const [globalConfig, setGlobalConfig] = useState<Config | null>(null);
-  const [localConfig, setLocalConfig] = useState<Config | null>(null);
-  const [configMode, setConfigMode] = useState<'global' | 'local' | string>('global');
-  const [isConfigPanelDirty, setIsConfigPanelDirty] = useState<boolean>(false);
 
   const [pendingClipboardCopy, setPendingClipboardCopy] = useState(false);
 
@@ -71,14 +93,14 @@ function App() {
 
   const startLoading = useCallback(() => {
     setLoading(true);
-    clearTimeout(loadingTimerRef.current!);
+    clearTimeout(loadingTimerRef.current!); // Use ! only if sure it's not null
     loadingTimerRef.current = setTimeout(() => {
       setShowLoadingIndicator(true);
     }, LOADING_DELAY) as unknown as number;
   }, []);
 
   const stopLoading = useCallback(() => {
-    clearTimeout(loadingTimerRef.current!);
+    clearTimeout(loadingTimerRef.current!); // Use ! only if sure it's not null
     setLoading(false);
     setShowLoadingIndicator(false);
   }, []);
@@ -111,43 +133,6 @@ function App() {
       throw err;
     }
   }, [setSettings, log, sendErrorMessage]);
-
-  // const checkLastDirectory = useCallback(async (loadedSettings: AppSettings | null): Promise<boolean> => {
-  //   clearMessages();
-  //   try {
-  //     const result = await invoke<CommandResult<SessionState>>("get_session_state");
-
-  //     if (result.success && result.data) {
-  //       const { lastDirectory, lastConfigMode } = result.data;
-  //       if (lastConfigMode === 'global' || lastConfigMode === 'local') {
-  //         setInitialConfigModePreference(lastConfigMode);
-  //         log(`Retrieved last config mode preference: ${lastConfigMode}`, 'debug');
-  //       } else {
-  //         setInitialConfigModePreference(null);
-  //       }
-
-  //       if (lastDirectory) {
-  //         const path = lastDirectory;
-  //         log(`Found last directory: ${path}`, 'debug');
-  //         setCurrentDirectory(path);
-  //         await loadDirectory(path, loadedSettings, lastConfigMode === 'global' || lastConfigMode === 'local' ? lastConfigMode : null);
-  //         return true;
-  //       } else {
-  //         log('No last directory path found in session state.', 'debug');
-  //         return false;
-  //       }
-  //     } else if (result.error) {
-  //       log(`Error loading last session state: ${result.error}`, 'warn');
-  //     } else {
-  //       log('No last session state data returned.', 'debug');
-  //     }
-  //     return false;
-  //   } catch (err) {
-  //     log(`Error invoking get_session_state: ${err}`, 'error');
-  //     setError(`Error checking last session state: ${err}`);
-  //     return false;
-  //   }
-  // }, [log, setError, clearMessages]);
 
   const handleSelectDirectory = useCallback(async (loadedSettings: AppSettings | null): Promise<boolean> => {
     clearMessages();
@@ -213,23 +198,40 @@ function App() {
             if (!switchResult.success) {
               log(`Failed to create missing config: ${switchResult.error}`, 'error');
               // Continue with existing mode
+            } else {
+              log(`Successfully created missing ${initialMode} config`, 'debug');
+              // Avoid immediate refetch by setting the newly created config manually
+              if (initialMode === 'local') {
+                setLocalConfig({ ...defaultConfig }); // Use the defined default config
+              } else {
+                setGlobalConfig({ ...defaultConfig }); // Use the defined default config
+              }
             }
           } catch (e) {
             log(`Error calling set_config_mode to create missing config: ${e}`, 'error');
             // Continue with existing mode
           }
         } else {
-          // Even if both configs exist, we should still update the backend
+          // Even if both configs exist, we should still update the backend state
           try {
-            await invoke('set_config_mode', { mode: initialMode });
+            log(`Updating backend config mode to: ${initialMode}`, 'debug');
+            const switchResult = await invoke<CommandResult<boolean>>('set_config_mode', { mode: initialMode });
+            if (!switchResult.success) {
+              log(`Failed to set config mode in backend: ${switchResult.error}`, 'error');
+            } else {
+              log(`Successfully set backend config mode to ${initialMode}`, 'debug');
+            }
           } catch (e) {
-            log(`Error updating backend config mode: ${e}`, 'warn');
+            log(`Error updating backend config mode: ${e}`, 'error');
           }
         }
 
         setConfigMode(initialMode);
         const activeConfig = initialMode === 'global' ? result.data.global : result.data.local;
         setConfig(activeConfig || null);
+        originalConfigRef.current = activeConfig ? { ...activeConfig } : null; // Store original on fetch
+        setIsConfigPanelDirty(false); // Reset dirty state
+
         if (!activeConfig) {
           log(`Preferred config mode '${initialMode}' not found for ${dir}`, 'warn');
         }
@@ -239,6 +241,7 @@ function App() {
         setGlobalConfig(null);
         setLocalConfig(null);
         setConfig(null);
+        originalConfigRef.current = null;
       }
     } catch (err) {
       setError(`Error loading configs: ${err}`);
@@ -246,12 +249,14 @@ function App() {
       setGlobalConfig(null);
       setLocalConfig(null);
       setConfig(null);
+      originalConfigRef.current = null;
     }
   };
 
   const loadDirectory = async (path: string, currentSettings: AppSettings | null, modePreference: 'global' | 'local' | null) => {
     log(`Loading directory structure for: ${path}`, 'debug');
     clearMessages();
+    startLoading(); // Start loading indicator
     try {
       const treeResult = await invoke<{ success: boolean; data?: DirectoryItem; error?: string }>(
         "load_directory",
@@ -260,8 +265,9 @@ function App() {
 
       if (treeResult.success && treeResult.data) {
         log('Directory tree loaded successfully', 'debug');
+        setSelectedFiles([]); // Reset file selection
         setDirectoryTree(treeResult.data);
-        await fetchConfigs(path, currentSettings, modePreference);
+        await fetchConfigs(path, currentSettings, modePreference); // Fetch configs *after* setting tree
       } else if (treeResult.error) {
         setError(treeResult.error);
         log(`Error loading directory tree: ${treeResult.error}`, 'error');
@@ -269,6 +275,7 @@ function App() {
         setGlobalConfig(null);
         setLocalConfig(null);
         setConfig(null);
+        originalConfigRef.current = null;
       }
     } catch (err) {
       setError(`Error loading directory: ${err}`);
@@ -277,39 +284,99 @@ function App() {
       setGlobalConfig(null);
       setLocalConfig(null);
       setConfig(null);
+      originalConfigRef.current = null;
+    } finally {
+      stopLoading(); // Stop loading indicator
     }
   };
 
-  const handleSaveConfig = async (newConfig: Config) => {
+  // Handler for ConfigPanel changes
+  const handleConfigChange = useCallback((field: keyof Config, value: any) => {
+    setConfig(prevConfig => {
+      if (!prevConfig) return null;
+      const updatedConfig = { ...prevConfig, [field]: value };
+
+      // Check if dirty
+      const isDifferent = JSON.stringify(originalConfigRef.current?.[field]) !== JSON.stringify(value);
+      if (isDifferent && !isConfigPanelDirty) {
+        setIsConfigPanelDirty(true);
+      } else if (!isDifferent && isConfigPanelDirty) {
+        // Optional: Check if ALL fields are back to original to reset dirty state
+        const allSame = Object.keys(updatedConfig).every(
+          key => JSON.stringify(updatedConfig[key as keyof Config]) === JSON.stringify(originalConfigRef.current?.[key as keyof Config])
+        );
+        if (allSame) {
+          setIsConfigPanelDirty(false);
+        }
+      }
+
+      return updatedConfig;
+    });
+  }, [isConfigPanelDirty]);
+
+  // Handler for ConfigPanel save button
+  const handleSaveConfig = async () => {
+    if (!config || !isConfigPanelDirty) return;
+
     try {
       startLoading();
       clearMessages();
 
       const result = await invoke<{ success: boolean; error?: string | AppError }>(
         "update_config",
-        { config: newConfig }
+        { config: config } // Send the current edited config state
       );
 
       if (result.success) {
-        setConfig(newConfig);
+        // Update the persistent stores (local/global) and original ref
         if (configMode === 'local') {
-          setLocalConfig(newConfig);
+          setLocalConfig({ ...config }); // Save the current state
         } else {
-          setGlobalConfig(newConfig);
+          setGlobalConfig({ ...config }); // Save the current state
         }
+        originalConfigRef.current = { ...config }; // Update original ref to current saved state
+        setIsConfigPanelDirty(false); // Reset dirty state
         sendSuccessMessage("Configuration saved", 2000);
+
+        // Check if any file filtering settings have changed compared to the *original* config
+        const original = originalConfigRef.current;
+        const fileFilteringChanged = original && (
+          config.include_file_types !== original.include_file_types ||
+          config.exclude_file_types.join(',') !== original.exclude_file_types.join(',') ||
+          config.use_git_ignore !== original.use_git_ignore ||
+          config.show_ignored_in_tree !== original.show_ignored_in_tree ||
+          config.show_default_ignored_in_tree !== original.show_default_ignored_in_tree
+        );
+
+        // Refresh directory tree if file filtering settings have changed
+        if (fileFilteringChanged && currentDirectory) {
+          log('File filtering settings changed, refreshing directory tree', 'debug');
+          try {
+            await loadDirectory(currentDirectory, settings, configMode as 'global' | 'local');
+          } catch (err) {
+            log(`Error refreshing directory tree: ${err}`, 'error');
+          }
+        }
       } else if (result.error) {
         const errorMsg = typeof result.error === 'object' && result.error !== null ? JSON.stringify(result.error) : result.error;
         sendErrorMessage(`Error saving config: ${errorMsg}`);
-        throw new Error(`Error saving config: ${errorMsg}`);
+        // Do not reset dirty state on error
       }
     } catch (err) {
       sendErrorMessage(`Error saving configuration: ${err}`);
-      throw new Error(`Error saving configuration: ${err}`);
+      // Do not reset dirty state on error
     } finally {
       stopLoading();
     }
   };
+
+  // Handler for ConfigPanel reset button
+  const handleResetConfig = useCallback(() => {
+    if (originalConfigRef.current) {
+      setConfig({ ...originalConfigRef.current }); // Reset to the stored original
+    }
+    setIsConfigPanelDirty(false);
+  }, []);
 
   const handleFileSelection = (files: string[]) => {
     setSelectedFiles(files);
@@ -319,6 +386,10 @@ function App() {
   const handleGenerateOutput = async () => {
     if (!selectedFiles.length) {
       sendErrorMessage("No files selected to generate output.");
+      return;
+    }
+    if (!config) {
+      sendErrorMessage("Configuration not loaded.");
       return;
     }
     try {
@@ -373,38 +444,53 @@ function App() {
 
   const handleConfigModeSwitch = async (mode: 'global' | 'local') => {
     if (isConfigPanelDirty) {
+      // TODO: Maybe add a confirmation dialog here?
       sendErrorMessage("Save or discard changes before switching config mode.", 3000);
       return;
     }
     try {
+      startLoading();
       clearMessages();
-      setConfigMode(mode);
 
+      // Update backend state first
       try {
         log(`Setting config mode on backend to: ${mode}`, 'debug');
-        // Call set_config_mode to update the backend state and create config if needed
         const result = await invoke<CommandResult<boolean>>('set_config_mode', { mode: mode });
 
         if (!result.success) {
           log(`Failed to set config mode: ${result.error}`, 'error');
           sendErrorMessage(`Failed to set config mode: ${result.error}`);
+          stopLoading();
           return;
         }
-
-        setInitialConfigModePreference(mode);
+        setInitialConfigModePreference(mode); // Persist preference
       } catch (persistError) {
         log(`Failed to set config mode: ${persistError}`, 'error');
         sendErrorMessage(`Failed to set config mode: ${persistError}`);
+        stopLoading();
         return;
       }
 
+      // Update UI state
+      setConfigMode(mode);
       const newActiveConfig = mode === 'local' ? (localConfig || globalConfig) : (globalConfig || localConfig);
       setConfig(newActiveConfig);
+      originalConfigRef.current = newActiveConfig ? { ...newActiveConfig } : null; // Update original ref on mode switch
+      setIsConfigPanelDirty(false); // Reset dirty state on switch
+
       if (!newActiveConfig) {
         log(`Switched to ${mode} config, but no config found for this mode.`, 'warn');
       }
+
+      // Refresh directory tree with the new config's file type settings
+      if (currentDirectory) {
+        log(`Refreshing directory tree after config mode switch to ${mode}`, 'debug');
+        await loadDirectory(currentDirectory, settings, mode);
+      }
     } catch (err) {
       sendErrorMessage(`Error switching config mode UI: ${err}`);
+    } finally {
+      stopLoading();
     }
   };
 
@@ -469,7 +555,7 @@ function App() {
 
     initializeApp();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Keep dependencies minimal for init
 
   useEffect(() => {
     if (pendingClipboardCopy && output) {
@@ -481,7 +567,7 @@ function App() {
 
   useEffect(() => {
     return () => {
-      clearTimeout(loadingTimerRef.current!);
+      clearTimeout(loadingTimerRef.current!); // Use ! only if sure it's not null
     };
   }, []);
 
@@ -496,7 +582,8 @@ function App() {
 
   const handleRefreshDirectoryTree = async () => {
     if (!currentDirectory) return;
-    await loadDirectory(currentDirectory, settings, initialConfigModePreference);
+    // Use the current configMode, not the initial preference, for refresh
+    await loadDirectory(currentDirectory, settings, configMode as 'global' | 'local');
   };
 
   return (
@@ -648,6 +735,8 @@ function App() {
                 tree={directoryTree}
                 onFileSelection={handleFileSelection}
                 selectedFiles={selectedFiles}
+                config={config || undefined}
+                onRefresh={handleRefreshDirectoryTree}
               />
             </div>
             <div className="flex flex-col gap-2 pt-3 border-t border-border flex-shrink-0">
@@ -694,7 +783,7 @@ function App() {
                     onClick={() => handleConfigModeSwitch(configMode === 'global' ? 'local' : 'global')}
                     disabled={
                       loading ||
-                      isConfigPanelDirty ||
+                      isConfigPanelDirty || // Disable switch if dirty
                       (configMode === 'global' && !localConfig) ||
                       (configMode === 'local' && !globalConfig)
                     }
@@ -733,8 +822,10 @@ function App() {
             {config && (
               <ConfigPanel
                 config={config}
-                onConfigUpdate={handleSaveConfig}
-                onDirtyChange={setIsConfigPanelDirty}
+                onConfigChange={handleConfigChange}
+                onSave={handleSaveConfig}
+                onReset={handleResetConfig}
+                isDirty={isConfigPanelDirty}
                 disabled={loading}
                 className="flex-shrink-0"
               />

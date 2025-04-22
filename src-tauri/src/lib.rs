@@ -131,11 +131,22 @@ async fn load_directory(
     // Update the current directory
     *state.current_dir.lock().unwrap() = path.to_path_buf();
 
-    // Need to load *a* config temporarily just to get tree display options
-    // Let's try local first, then global. This is only for display.
-    let display_config = config::load_or_create_project_config(path)
-        .or_else(|_| config::load_or_create_global_config())
-        .unwrap_or_default();
+    // Get the active config mode
+    let config_mode = *state.config_mode.lock().unwrap();
+
+    // Load config based on active mode instead of always trying local first
+    let display_config = match config_mode {
+        ConfigMode::LocalOverride => {
+            // Try local first, fall back to global
+            config::load_or_create_project_config(path)
+                .or_else(|_| config::load_or_create_global_config())
+                .unwrap_or_default()
+        }
+        ConfigMode::Global => {
+            // Only use global config
+            config::load_or_create_global_config().unwrap_or_default()
+        }
+    };
 
     // Load directory tree based on display settings
     match fs::get_directory_tree(
@@ -143,6 +154,8 @@ async fn load_directory(
         display_config.use_git_ignore,
         display_config.show_ignored_in_tree,
         display_config.show_default_ignored_in_tree,
+        &display_config.include_file_types,
+        &display_config.exclude_file_types,
     ) {
         Ok(tree) => Ok(CommandResult::success(tree)),
         Err(e) => Ok(CommandResult::error(format!(

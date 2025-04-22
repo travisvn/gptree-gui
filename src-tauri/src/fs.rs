@@ -51,12 +51,51 @@ pub fn generate_tree_structure(
     use_gitignore: bool,
     show_ignored: bool,
     show_default_ignored: bool,
+    include_file_types: &str,
+    exclude_file_types: &[String],
 ) -> Result<TreeStructure, AppError> {
     // Load gitignore if requested
     let gitignore = if use_gitignore {
         load_gitignore(root_dir)?.and_then(|builder| builder.build().ok())
     } else {
         None
+    };
+
+    // Parse include_file_types into a set of extensions
+    let include_all = include_file_types == "*";
+    let included_extensions: HashSet<String> = if !include_all {
+        include_file_types
+            .split(',')
+            .map(|ext| ext.trim().to_lowercase())
+            .filter(|ext| !ext.is_empty())
+            .collect()
+    } else {
+        HashSet::new() // Empty set when including all file types
+    };
+
+    // Convert exclude_file_types to a set for efficient lookups
+    let excluded_extensions: HashSet<String> = exclude_file_types
+        .iter()
+        .map(|ext| ext.trim().to_lowercase())
+        .collect();
+
+    // Helper function to check if a file should be included based on its extension
+    let should_include_file = |path: &Path| -> bool {
+        if path.is_dir() {
+            return true; // Always include directories in the tree
+        }
+
+        if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
+            let ext = format!(".{}", extension.to_lowercase());
+            if include_all {
+                !excluded_extensions.contains(&ext)
+            } else {
+                included_extensions.contains(&ext)
+            }
+        } else {
+            // Files without extensions
+            include_all // Include only if we're including all files
+        }
     };
 
     let mut tree_lines = vec![".".to_string()];
@@ -72,6 +111,7 @@ pub fn generate_tree_structure(
         gitignore: &Option<ignore::gitignore::Gitignore>,
         show_ignored: bool,
         show_default_ignored: bool,
+        should_include_file: &dyn Fn(&Path) -> bool,
     ) -> Result<(), AppError> {
         // Get directory entries
         let entries = fs::read_dir(dir_path)?
@@ -83,27 +123,48 @@ pub fn generate_tree_structure(
         let mut items: Vec<PathBuf> = entries
             .into_iter()
             .filter(|entry| {
-                if show_ignored {
+                // Always include directories for tree structure
+                if entry.is_dir() {
+                    if show_ignored {
+                        return true;
+                    } else {
+                        let should_ignore = if let Some(gitignore) = gitignore {
+                            gitignore.matched(entry, true).is_ignore()
+                        } else {
+                            false
+                        };
+
+                        let is_default_ignored = is_default_ignored(entry);
+
+                        if show_default_ignored {
+                            return !should_ignore;
+                        } else {
+                            return !should_ignore && !is_default_ignored;
+                        }
+                    }
+                }
+
+                // For files, apply both gitignore and extension filters
+                let passes_gitignore = if show_ignored {
                     true
                 } else {
-                    let rel_path = entry.strip_prefix(root_dir).unwrap_or(entry);
                     let should_ignore = if let Some(gitignore) = gitignore {
-                        gitignore.matched(entry, entry.is_dir()).is_ignore()
+                        gitignore.matched(entry, false).is_ignore()
                     } else {
                         false
                     };
 
                     let is_default_ignored = is_default_ignored(entry);
 
-                    // Logic for filtering:
-                    // - If show_default_ignored is true, we keep default ignored items but still filter gitignore items
-                    // - Otherwise we filter out both gitignore and default ignored items
                     if show_default_ignored {
                         !should_ignore
                     } else {
                         !should_ignore && !is_default_ignored
                     }
-                }
+                };
+
+                // Only apply file type filtering if the file passes the gitignore filter
+                passes_gitignore && should_include_file(entry)
             })
             .collect();
 
@@ -168,6 +229,7 @@ pub fn generate_tree_structure(
                     gitignore,
                     show_ignored,
                     show_default_ignored,
+                    should_include_file,
                 )?;
             } else if item_path.is_file() {
                 file_list.push(item_path.to_string_lossy().into_owned());
@@ -186,6 +248,7 @@ pub fn generate_tree_structure(
         &gitignore,
         show_ignored,
         show_default_ignored,
+        &should_include_file,
     )?;
 
     Ok(TreeStructure {
@@ -228,12 +291,47 @@ pub fn get_directory_tree(
     use_gitignore: bool,
     show_ignored: bool,
     show_default_ignored: bool,
+    include_file_types: &str,
+    exclude_file_types: &[String],
 ) -> Result<DirectoryItem, AppError> {
     // Load gitignore if requested
     let gitignore = if use_gitignore {
         load_gitignore(root_dir)?.and_then(|builder| builder.build().ok())
     } else {
         None
+    };
+
+    // Parse include_file_types into a set of extensions
+    let include_all = include_file_types == "*";
+    let included_extensions: HashSet<String> = if !include_all {
+        include_file_types
+            .split(',')
+            .map(|ext| ext.trim().to_lowercase())
+            .filter(|ext| !ext.is_empty())
+            .collect()
+    } else {
+        HashSet::new() // Empty set when including all file types
+    };
+
+    // Convert exclude_file_types to a set for efficient lookups
+    let excluded_extensions: HashSet<String> = exclude_file_types
+        .iter()
+        .map(|ext| ext.trim().to_lowercase())
+        .collect();
+
+    // Helper function to check if a file should be included based on its extension
+    let should_include_file = |path: &Path| -> bool {
+        if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
+            let ext = format!(".{}", extension.to_lowercase());
+            if include_all {
+                !excluded_extensions.contains(&ext)
+            } else {
+                included_extensions.contains(&ext)
+            }
+        } else {
+            // Files without extensions
+            include_all // Include only if we're including all files
+        }
     };
 
     let root_name = root_dir
@@ -258,6 +356,7 @@ pub fn get_directory_tree(
         gitignore: &Option<ignore::gitignore::Gitignore>,
         show_ignored: bool,
         show_default_ignored: bool,
+        should_include_file: &dyn Fn(&Path) -> bool,
     ) -> Result<(), AppError> {
         let entries = fs::read_dir(dir_path)?
             .filter_map(Result::ok)
@@ -268,11 +367,33 @@ pub fn get_directory_tree(
         let mut items: Vec<PathBuf> = entries
             .into_iter()
             .filter(|entry| {
-                if show_ignored {
+                // Always include directories
+                if entry.is_dir() {
+                    if show_ignored {
+                        return true;
+                    } else {
+                        let should_ignore = if let Some(gitignore) = gitignore {
+                            gitignore.matched(entry, true).is_ignore()
+                        } else {
+                            false
+                        };
+
+                        let is_default_ignored = is_default_ignored(entry);
+
+                        if show_default_ignored {
+                            return !should_ignore;
+                        } else {
+                            return !should_ignore && !is_default_ignored;
+                        }
+                    }
+                }
+
+                // For files, apply both gitignore and extension filters
+                let passes_gitignore = if show_ignored {
                     true
                 } else {
                     let should_ignore = if let Some(gitignore) = gitignore {
-                        gitignore.matched(entry, entry.is_dir()).is_ignore()
+                        gitignore.matched(entry, false).is_ignore()
                     } else {
                         false
                     };
@@ -284,7 +405,10 @@ pub fn get_directory_tree(
                     } else {
                         !should_ignore && !is_default_ignored
                     }
-                }
+                };
+
+                // Only apply file type filtering if the file passes the gitignore filter
+                passes_gitignore && should_include_file(entry)
             })
             .collect();
 
@@ -328,10 +452,18 @@ pub fn get_directory_tree(
                     gitignore,
                     show_ignored,
                     show_default_ignored,
+                    should_include_file,
                 )?;
-            }
 
-            parent_item.children.push(item);
+                // Only add directories that have children (either files or subdirectories)
+                // This prevents empty directories from showing up in the tree
+                if !item.children.is_empty() {
+                    parent_item.children.push(item);
+                }
+            } else {
+                // Files are always added if they've passed the filter
+                parent_item.children.push(item);
+            }
         }
 
         Ok(())
@@ -344,6 +476,7 @@ pub fn get_directory_tree(
         &gitignore,
         show_ignored,
         show_default_ignored,
+        &should_include_file,
     )?;
 
     Ok(root_item)
