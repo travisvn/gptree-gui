@@ -1,8 +1,9 @@
-import { CheckSquare, Square, Funnel, ArrowClockwise } from '@phosphor-icons/react';
+import { CheckSquare, Square } from '@phosphor-icons/react';
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx'; // Helper for conditional classes
 import { getMaterialIconPath } from '../icon-helpers/getMaterialIconName'; // Import the new helper
-import { Config } from '../lib/types';
+import { ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
+// import { Config } from '../lib/types';
 
 
 // Export if needed by getMaterialIconName.ts (not strictly required by current implementation)
@@ -18,16 +19,16 @@ interface DirectoryTreeProps {
   tree: DirectoryItem;
   onFileSelection: (selectedFiles: string[]) => void;
   selectedFiles: string[];
-  config?: Config; // Add config to props
-  onRefresh?: () => void; // Add refresh callback
+  // config?: Config; // Add config to props
+  // onRefresh?: () => void; // Add refresh callback
 }
 
 const DirectoryTree: React.FC<DirectoryTreeProps> = ({
   tree,
   onFileSelection,
   selectedFiles,
-  config,
-  onRefresh
+  // config,
+  // onRefresh
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
     const initial = new Set<string>();
@@ -37,26 +38,6 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
     return initial;
   });
   const [localSelectedFiles, setLocalSelectedFiles] = useState<Set<string>>(new Set(selectedFiles));
-
-  // Check if file type filtering is active
-  const isFilterActive = config && (
-    config.include_file_types !== "*" ||
-    (config.include_file_types === "*" && config.exclude_file_types.length > 0)
-  );
-
-  // Get human-readable filter description
-  const getFilterDescription = (): string => {
-    if (!config) return '';
-
-    if (config.include_file_types === "*") {
-      if (config.exclude_file_types.length > 0) {
-        return `Excluding: ${config.exclude_file_types.join(', ')}`;
-      }
-      return 'All files';
-    } else {
-      return `Only: ${config.include_file_types}`;
-    }
-  };
 
   const getAllFilePaths = (item: DirectoryItem): string[] => {
     let paths: string[] = [];
@@ -236,7 +217,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
     <div className="directory-tree flex flex-col h-full overflow-hidden">
       {/* Controls */}
       <div className="flex justify-between items-center p-2 border-b border-border flex-shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <input
             type="checkbox"
             checked={selectAllChecked}
@@ -248,17 +229,9 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
           <label htmlFor="select-all" className="cursor-pointer text-sm select-none">
             Select All
           </label>
-
-          {/* Filter indicator */}
-          {isFilterActive && (
-            <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 text-xs">
-              <Funnel size={14} />
-              <span title={getFilterDescription()}>Filtered</span>
-            </div>
-          )}
         </div>
         <div className="flex gap-2">
-          {onRefresh && (
+          {/* {onRefresh && (
             <button
               onClick={onRefresh}
               className="button text-xs px-2 py-1 flex items-center gap-1"
@@ -267,9 +240,23 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
               <ArrowClockwise size={14} />
               Refresh
             </button>
-          )}
-          <button onClick={expandAll} className="button text-xs px-2 py-1">Expand</button>
-          <button onClick={collapseAll} className="button text-xs px-2 py-1">Collapse</button>
+          )} */}
+          <button
+            onClick={expandAll}
+            className="button text-xs px-2 py-1 flex items-center gap-1"
+
+          >
+            <ChevronsUpDown size={14} />
+            Expand
+          </button>
+          <button
+            onClick={collapseAll}
+            className="button text-xs px-2 py-1 flex items-center gap-1"
+          >
+
+            <ChevronsDownUp size={14} />
+            Collapse
+          </button>
         </div>
       </div>
 

@@ -6,7 +6,7 @@ import OutputPanel from "./components/OutputPanel";
 import SettingsModal from "./components/SettingsModal";
 import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
-import { ArrowClockwise, Gear, Moon, Sun } from '@phosphor-icons/react';
+import { ArrowClockwise, Funnel, Gear, Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
 import { HEADER_LINK, GITHUB_LINK, VERSION_NAME, DISPLAY_VERSION_RIBBON } from './lib/constants';
 import { DirectoryItem, Config, OutputContent, AppError, CommandResult, AppSettings, SessionState } from './lib/types';
@@ -600,6 +600,27 @@ function App() {
     await loadDirectory(currentDirectory, settings, configMode as 'global' | 'local');
   };
 
+
+  // Check if file type filtering is active
+  const isFilterActive = config && (
+    config.include_file_types !== "*" ||
+    (config.include_file_types === "*" && config.exclude_file_types.length > 0)
+  );
+
+  // Get human-readable filter description
+  const getFilterDescription = (): string => {
+    if (!config) return '';
+
+    if (config.include_file_types === "*") {
+      if (config.exclude_file_types.length > 0) {
+        return `Excluding: ${config.exclude_file_types.join(', ')}`;
+      }
+      return 'All files';
+    } else {
+      return `Only: ${config.include_file_types}`;
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-background text-text relative">
 
@@ -736,6 +757,19 @@ function App() {
           <div className="output-panel flex flex-col p-2 border rounded-lg shadow-sm bg-light-bg border-border w-1/3 min-w-[300px] max-w-[50vw] overflow-hidden ">
             <div className='flex flex-row justify-between items-center gap-2 mb-2'>
               <h2 className="text-lg/none font-semibold flex-shrink-0">Project Files</h2>
+
+              {/* Filter indicator */}
+              {isFilterActive && (
+                <div
+                  className="flex items-center gap-1 text-primary text-xs cursor-default"
+                  // title={getFilterDescription()}
+                  data-tooltip-id="small-tooltip"
+                  data-tooltip-content={getFilterDescription()}
+                >
+                  <Funnel size={14} />
+                  <span>Filtered</span>
+                </div>
+              )}
               <button
                 onClick={handleRefreshDirectoryTree}
                 disabled={loading}
@@ -751,8 +785,8 @@ function App() {
                 tree={directoryTree}
                 onFileSelection={handleFileSelection}
                 selectedFiles={selectedFiles}
-                config={config || undefined}
-                onRefresh={handleRefreshDirectoryTree}
+              // config={config || undefined}
+              // onRefresh={handleRefreshDirectoryTree}
               />
             </div>
             <div className="flex flex-col gap-2 pt-3 border-t border-border flex-shrink-0">
