@@ -5,6 +5,9 @@ on:
     types: [published]
   workflow_dispatch: # Allow manual triggering
 
+permissions:
+  contents: write
+
 jobs:
   generate-script:
     runs-on: ubuntu-latest
