@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Bug, CaretDown, CaretRight, FloppyDisk, ArrowCounterClockwise } from '@phosphor-icons/react';
 import { useAtom } from 'jotai';
 import { debugEnabledAtom } from '../lib/store/atoms';
