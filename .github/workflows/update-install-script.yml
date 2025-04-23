@@ -98,4 +98,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add scripts/install.sh
           git commit -m "Auto-update install.sh for latest release" || echo "No changes to commit"
-          git push
+          git push origin HEAD:main
