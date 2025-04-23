@@ -27,7 +27,7 @@ _(Leverages the core logic and features of the [gptree CLI tool](https://github.
 
 ### 🍎 macOS
 
-- [Download GPTree for macOS (.dmg) - Universal](https://github.com/travisvn/gptree-gui-2/releases/download/latest/GPTree-mac-universal.dmg)
+- [Download GPTree for macOS (.dmg) - Universal](https://github.com/travisvn/gptree-gui/releases/download/latest/GPTree-mac-universal.dmg)
   - _Universal (M1 and Intel) (arm64 and x86)_
 
 ### 🐧 Linux
@@ -38,14 +38,12 @@ curl -fsSL https://raw.githubusercontent.com/travisvn/gptree-gui/main/scripts/in
 
 ### 🪟 Windows
 
-- [Download GPTree for Windows (.exe)](https://github.com/travisvn/gptree-gui-2/releases/download/latest/GPTree-windows.exe)
-- [Download GPTree for Windows (.msi)](https://github.com/travisvn/gptree-gui-2/releases/download/latest/GPTree-windows.msi)
+- [Download GPTree for Windows (.exe)](https://github.com/travisvn/gptree-gui/releases/download/latest/GPTree-windows.exe)
+- [Download GPTree for Windows (.msi)](https://github.com/travisvn/gptree-gui/releases/download/latest/GPTree-windows.msi)
 
 ## Screenshot
 
-
-![GPTree GUI Screenshot](<https://0jg2h4r6p4.ufs.sh/f/ujtLcEbQI4O722QecZymQ4klBRw6yDvsdb5gXrK10Np8VcJZ>)
-
+![GPTree GUI Screenshot](https://0jg2h4r6p4.ufs.sh/f/ujtLcEbQI4O722QecZymQ4klBRw6yDvsdb5gXrK10Np8VcJZ)
 
 ## Usage
 
