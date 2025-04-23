@@ -27,3 +27,12 @@ gptree_output.txt
 .gptreerc
 
 .env
+.notes
+
+local-build
+local-build/*
+Entitlements.plist
+Info.plist
+tauri.appstore.conf.json
+GPTree.pkg 
+build-universal.sh

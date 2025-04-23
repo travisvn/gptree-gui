@@ -73,8 +73,8 @@ struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            default_to_local_config: false,        // Default: prefer global config
-            prompt_for_directory_on_startup: true, // Default: prompt user if no last dir
+            default_to_local_config: false, // Default: prefer global config
+            prompt_for_directory_on_startup: false, // Default: prompt user if no last dir (changed to false)
         }
     }
 }

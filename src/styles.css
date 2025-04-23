@@ -158,4 +158,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  html,
+  body {
+    @apply scheme-light dark:scheme-dark;
+  }
 }

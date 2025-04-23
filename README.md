@@ -23,50 +23,29 @@ This is a desktop GUI application for the [`gptree`](https://github.com/travisvn
 
 _(Leverages the core logic and features of the [gptree CLI tool](https://github.com/travisvn/gptree))_
 
+## Install
+
+### 🍎 macOS
+
+- [Download GPTree for macOS (.dmg) - Universal](https://github.com/travisvn/gptree-gui-2/releases/download/latest/GPTree-mac-universal.dmg)
+  - _Universal (M1 and Intel) (arm64 and x86)_
+
+### 🐧 Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/travisvn/gptree-gui/main/scripts/install.sh | sh
+```
+
+### 🪟 Windows
+
+- [Download GPTree for Windows (.exe)](https://github.com/travisvn/gptree-gui-2/releases/download/latest/GPTree-windows.exe)
+- [Download GPTree for Windows (.msi)](https://github.com/travisvn/gptree-gui-2/releases/download/latest/GPTree-windows.msi)
+
 ## Screenshot
 
-_(Suggestion: Add a screenshot of the application here)_
 
-```
-![GPTree GUI Screenshot](<link_to_your_screenshot.png>)
-```
+![GPTree GUI Screenshot](<https://0jg2h4r6p4.ufs.sh/f/ujtLcEbQI4O722QecZymQ4klBRw6yDvsdb5gXrK10Np8VcJZ>)
 
-## Prerequisites
-
-- [Node.js](https://nodejs.org/) (which includes npm)
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Tauri Prerequisites](https://tauri.app/v1/guides/getting-started/prerequisites) for your specific operating system.
-
-## Development Setup
-
-1.  **Clone the repository:**
-    ```bash
-    git clone <your_repository_url>
-    cd gptree-gui-2
-    ```
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-3.  **Run in development mode:**
-    ```bash
-    npm run tauri dev
-    ```
-    This will open the application window with hot-reloading enabled for the frontend.
-
-## Building the Application
-
-1.  **Build the application:**
-    ```bash
-    npm run tauri build
-    ```
-2.  **Build specific bundles (e.g., macOS .app):**
-    ```bash
-    npm run tauri build -- --bundles app
-    ```
-    The built application(s) will be located in `src-tauri/target/release/bundle/`.
-
-_(Note: A `.env` file might be needed for signing on macOS during the build process for distribution, but is not necessary for local builds or contributions.)_
 
 ## Usage
 
@@ -112,8 +91,3 @@ Contributions are welcome! Please fork the repository and create a pull request 
 
 - Based on the original [`gptree` CLI tool](https://github.com/travisvn/gptree).
 - File and folder icons implemented using logic and assets from [material-extensions/vscode-material-icon-theme](https://github.com/material-extensions/vscode-material-icon-theme) ✨
-
-## License
-
-_(Assuming GPL-3.0 like the CLI tool. Please update if incorrect)_
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0). See the [LICENSE.txt](License.txt) file for details (if it exists in the repo root) or refer to the [GPL-3.0 License terms](https://www.gnu.org/licenses/gpl-3.0.en.html).

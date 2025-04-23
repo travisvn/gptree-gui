@@ -1,6 +1,6 @@
 [package]
 name = "gptree-gui"
-version = "0.1.3"
+version = "0.1.7"
 description = "GPTree GUI - A tool for providing LLM context for coding projects"
 authors = ["Travis Van Nimwegen <contact@gptree.dev>"]
 edition = "2021"

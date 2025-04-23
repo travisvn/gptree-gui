@@ -51,7 +51,7 @@ export interface CommandResult<T> {
   error?: string | AppError | null; // Allow null and AppError based on Rust code
 }
 
-// Define AppSettings interface (useful to have it here too)
+// Define AppSettings interface 
 export interface AppSettings {
   defaultToLocalConfig: boolean;
   promptForDirectoryOnStartup: boolean;

@@ -1,0 +1,111 @@
+name: 'Download and rename assets'
+
+on:
+  workflow_dispatch: # Allow manual triggering
+
+# This workflow will trigger on each push to the `release` branch to create or update a GitHub release, build your app, and upload the artifacts to the release.
+
+jobs:
+  rename-release-assets:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        run: |
+          type -p gh > /dev/null || (\
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+            && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+            && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+            && sudo apt update \
+            && sudo apt install gh -y \
+          )
+
+      - name: Get release tag name
+        id: extract_tag
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            echo "Triggered by tag: $TAG_NAME"
+          else
+            echo "Not triggered by tag, fetching latest release tag..."
+            TAG_NAME=$(gh release list --limit 1 --json tagName -q '.[0].tagName')
+            if [[ -z "$TAG_NAME" ]]; then
+              echo "Error: Could not find the latest release tag."
+              exit 1
+            fi
+            echo "Latest release tag: $TAG_NAME"
+          fi
+          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download release assets
+        run: |
+          mkdir -p release-assets
+          echo "Downloading assets for release tag: ${{ steps.extract_tag.outputs.tag }}"
+          gh release download "${{ steps.extract_tag.outputs.tag }}" --dir release-assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rename assets to stable names
+        run: |
+          cd release-assets
+
+          mv GPTree-*.rpm GPTree-linux.rpm || true
+          mv GPTree_*_amd64.deb GPTree-linux.deb || true
+          mv GPTree_*_amd64.AppImage GPTree-linux.AppImage || true
+
+          mv GPTree_*_x64-setup.exe GPTree-windows.exe || true
+          mv GPTree_*_x64_en-US.msi GPTree-windows.msi || true
+
+          mv GPTree_*_universal.dmg GPTree-mac-universal.dmg || true
+          mv GPTree_universal.app.tar.gz GPTree-mac-universal.app.tar.gz || true
+
+          ls -lh
+
+      - name: Upload renamed files to GitHub release
+        run: |
+          gh release upload "${{ steps.extract_tag.outputs.tag }}" \
+            release-assets/GPTree-linux.rpm \
+            release-assets/GPTree-linux.deb \
+            release-assets/GPTree-linux.AppImage \
+            release-assets/GPTree-windows.exe \
+            release-assets/GPTree-windows.msi \
+            release-assets/GPTree-mac-universal.dmg \
+            release-assets/GPTree-mac-universal.app.tar.gz \
+            --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove all non-renamed assets from release
+        run: |
+          tag=${{ steps.extract_tag.outputs.tag }}
+
+          # List of assets we want to keep (exactly named)
+          keep_assets=(
+            GPTree-linux.deb
+            GPTree-linux.rpm
+            GPTree-linux.AppImage
+            GPTree-mac-universal.dmg
+            GPTree-mac-universal.app.tar.gz
+            GPTree-windows.exe
+            GPTree-windows.msi
+          )
+
+          # Get all current assets for the release
+          all_assets=$(gh release view "$tag" --json assets -q '.assets[].name')
+
+          for asset in $all_assets; do
+            if printf '%s\n' "${keep_assets[@]}" | grep -qx "$asset"; then
+              echo "✅ Keeping $asset"
+            else
+              echo "🗑️ Deleting $asset from release $tag..."
+              gh release delete-asset "$tag" "$asset" --yes || true
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
