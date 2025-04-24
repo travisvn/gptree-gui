@@ -33,7 +33,7 @@ _(Leverages the core logic and features of the [gptree CLI tool](https://github.
 
 ### 🍎 macOS
 
-- [Download GPTree for macOS (.dmg) - Universal](https://github.com/travisvn/gptree-gui/releases/download/latest/GPTree-mac-universal.dmg)
+- [Download GPTree for macOS (.dmg) - Universal](https://github.com/travisvn/gptree-gui/releases/latest/download/GPTree-mac-universal.dmg)
   - _Universal (M1 and Intel) (arm64 and x86)_
 
 ### 🐧 Linux
@@ -44,8 +44,8 @@ curl -fsSL https://raw.githubusercontent.com/travisvn/gptree-gui/main/scripts/in
 
 ### 🪟 Windows
 
-- [Download GPTree for Windows (.exe)](https://github.com/travisvn/gptree-gui/releases/download/latest/GPTree-windows.exe)
-- [Download GPTree for Windows (.msi)](https://github.com/travisvn/gptree-gui/releases/download/latest/GPTree-windows.msi)
+- [Download GPTree for Windows (.exe)](https://github.com/travisvn/gptree-gui/releases/latest/download/GPTree-windows.exe)
+- [Download GPTree for Windows (.msi)](https://github.com/travisvn/gptree-gui/releases/latest/download/GPTree-windows.msi)
 
 ## Screenshot
 
