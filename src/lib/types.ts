@@ -55,6 +55,7 @@ export interface CommandResult<T> {
 export interface AppSettings {
   defaultToLocalConfig: boolean;
   promptForDirectoryOnStartup: boolean;
+  enableFolderCheckboxes: boolean;
 }
 
 // Define SessionState interface (from session_state.json)

@@ -67,6 +67,7 @@ impl<T> CommandResult<T> {
 struct AppSettings {
     default_to_local_config: bool,
     prompt_for_directory_on_startup: bool,
+    enable_folder_checkboxes: bool,
 }
 
 // Default implementation for AppSettings
@@ -75,6 +76,7 @@ impl Default for AppSettings {
         Self {
             default_to_local_config: false, // Default: prefer global config
             prompt_for_directory_on_startup: false, // Default: prompt user if no last dir (changed to false)
+            enable_folder_checkboxes: true,         // <-- Default to true
         }
     }
 }

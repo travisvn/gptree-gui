@@ -119,6 +119,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   disabled={isLoading}
                 />
               </div>
+              <div className="flex items-center justify-between space-x-2">
+                <Label htmlFor="folder-checkbox-switch" className="flex flex-col space-y-1 items-start cursor-pointer">
+                  <span>Enable Folder Selection Checkboxes</span>
+                  <span className="font-normal leading-snug text-muted-foreground">
+                    Show checkboxes next to folders to select/deselect all their contents.
+                  </span>
+                </Label>
+                <Switch
+                  id="folder-checkbox-switch"
+                  checked={editedSettings.enableFolderCheckboxes}
+                  onCheckedChange={(checked) =>
+                    handleSwitchChange('enableFolderCheckboxes', checked)
+                  }
+                  disabled={isLoading}
+                />
+              </div>
             </div>
           )}
           {isOpen && !isLoading && !editedSettings && !error && <p>Could not load settings.</p>}

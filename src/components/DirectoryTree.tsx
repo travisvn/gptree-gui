@@ -1,4 +1,4 @@
-import { CheckSquare, Square } from '@phosphor-icons/react';
+import { CheckSquare, Square, MinusSquare } from '@phosphor-icons/react';
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx'; // Helper for conditional classes
 import { getMaterialIconPath } from '../icon-helpers/getMaterialIconName'; // Import the new helper
@@ -19,6 +19,7 @@ interface DirectoryTreeProps {
   tree: DirectoryItem;
   onFileSelection: (selectedFiles: string[]) => void;
   selectedFiles: string[];
+  enableFolderCheckboxes: boolean;
   // config?: Config; // Add config to props
   // onRefresh?: () => void; // Add refresh callback
 }
@@ -27,6 +28,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
   tree,
   onFileSelection,
   selectedFiles,
+  enableFolderCheckboxes,
   // config,
   // onRefresh
 }) => {
@@ -39,19 +41,20 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
   });
   const [localSelectedFiles, setLocalSelectedFiles] = useState<Set<string>>(new Set(selectedFiles));
 
-  const getAllFilePaths = (item: DirectoryItem): string[] => {
+  // Helper to get all descendant file paths (visible in the current tree structure)
+  const getDescendantFiles = (item: DirectoryItem): string[] => {
     let paths: string[] = [];
     if (!item.is_dir) {
       paths.push(item.path);
-    } else {
+    } else if (item.children) { // Check if children exist
       item.children.forEach(child => {
-        paths = paths.concat(getAllFilePaths(child));
+        paths = paths.concat(getDescendantFiles(child));
       });
     }
     return paths;
   };
 
-  const allFilePathsInTree = React.useMemo(() => getAllFilePaths(tree), [tree]);
+  const allFilePathsInTree = React.useMemo(() => getDescendantFiles(tree), [tree]); // Use renamed helper
   const selectAllChecked = React.useMemo(() => {
     if (allFilePathsInTree.length === 0) return false;
     return allFilePathsInTree.every(path => localSelectedFiles.has(path));
@@ -74,27 +77,38 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
     // already manages clearing/setting selections when the directory changes.
   }, [tree]); // Re-run when the tree prop changes
 
-  const toggleFolder = (path: string) => {
-    setExpandedFolders(prev => {
-      const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
-      }
-      return next;
-    });
+  // Determine the selection state of a folder based on its descendants
+  const getFolderSelectionState = (folder: DirectoryItem, currentSelectedFiles: Set<string>): 'checked' | 'unchecked' | 'indeterminate' => {
+    const descendantFiles = getDescendantFiles(folder);
+    if (descendantFiles.length === 0) {
+      return 'unchecked'; // No selectable files within
+    }
+    const selectedCount = descendantFiles.filter(path => currentSelectedFiles.has(path)).length;
+
+    if (selectedCount === 0) {
+      return 'unchecked';
+    } else if (selectedCount === descendantFiles.length) {
+      return 'checked';
+    } else {
+      return 'indeterminate';
+    }
   };
 
-  const toggleFileSelection = (path: string) => {
+  // Handle clicking a folder\'s checkbox
+  const toggleFolderSelection = (folder: DirectoryItem) => {
+    const descendantFiles = getDescendantFiles(folder);
+    if (descendantFiles.length === 0) return; // No files to select/deselect
+
+    const currentState = getFolderSelectionState(folder, localSelectedFiles);
+
     setLocalSelectedFiles(prev => {
       const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
+      if (currentState === 'checked') { // If fully checked, uncheck all
+        descendantFiles.forEach(path => next.delete(path));
+      } else { // If unchecked or indeterminate, check all
+        descendantFiles.forEach(path => next.add(path));
       }
-      onFileSelection(Array.from(next));
+      onFileSelection(Array.from(next)); // Notify parent
       return next;
     });
   };
@@ -104,7 +118,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       setLocalSelectedFiles(new Set());
       onFileSelection([]);
     } else {
-      const allFiles = getAllFilePaths(tree);
+      const allFiles = getDescendantFiles(tree); // Use renamed helper
       setLocalSelectedFiles(new Set(allFiles));
       onFileSelection(allFiles);
     }
@@ -126,65 +140,104 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
     setExpandedFolders(new Set());
   };
 
+  const toggleFolder = (path: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  };
+
+  // Handle clicking a file's checkbox/row
+  const toggleFileSelection = (path: string) => {
+    setLocalSelectedFiles(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      onFileSelection(Array.from(next)); // Notify parent
+      return next;
+    });
+  };
+
   // Recursive rendering of tree items
   const renderTreeItem = (item: DirectoryItem, level: number = 0) => {
     const isExpanded = expandedFolders.has(item.path);
     const isSelected = localSelectedFiles.has(item.path);
     const isFolder = item.is_dir;
     const isFileSelected = !isFolder && isSelected;
+    // Calculate folder checkbox state (only if it's a folder)
+    const folderSelectionState = isFolder ? getFolderSelectionState(item, localSelectedFiles) : null;
     const iconPath = getMaterialIconPath(item.name, isFolder, isExpanded);
 
     return (
-      <div key={item.path} className="flex flex-col">
+      <div key={item.path} className="flex flex-col pr-1">
         {/* Item Row */}
         <div
           className={clsx(
             'group flex items-center p-1 rounded', // Base styles
             'hover:bg-secondary dark:hover:text-white', // Hover styles
             {
-              'bg-border dark:text-white': isFileSelected, // Selected file style
+              // 'bg-border dark:text-white': isFileSelected, // Selected file style
               'cursor-pointer': !isFolder, // Cursor for files
             }
           )}
-          style={{ paddingLeft: `${level * 1.25 + 0.25}rem` }} // Indentation
+          style={{ paddingLeft: `${level * 0.3 + 0.25}rem` }} // Reduced indentation multiplier
           onClick={() => {
-            if (!isFolder) toggleFileSelection(item.path);
+            if (!isFolder) toggleFileSelection(item.path); // Toggle file selection on row click for files
           }}
         >
-          {/* Folder Icon/Toggle */}
+          {/* Folder Row: Checkbox + Icon + Expand Toggle */}
           {isFolder && (
-            <span
-              className="cursor-pointer mr-1.5 flex items-center gap-1 text-text" // Added flex/gap/text color
-              onClick={e => { e.stopPropagation(); toggleFolder(item.path); }}
-            >
-              {/* Material Folder Icon (using the path which now includes -open if expanded) */}
-              <img src={iconPath} alt="" className="w-5 h-5 flex-shrink-0" />
-              {/* Expansion Toggle Icon (using Phosphor - kept for visual cue) */}
-              {/* {isExpanded ? (
-                <FolderOpen size={20} weight="duotone" />
-              ) : (
-                <Folder size={20} weight="duotone" />
-              )} */}
-            </span>
+            <div className="flex items-center gap-1 mr-1.5"> {/* Group checkbox, icon, expander */}
+              {/* Folder Checkbox (Conditional) */}
+              {enableFolderCheckboxes && (
+                <span
+                  onClick={e => { e.stopPropagation(); toggleFolderSelection(item); }} // Select/deselect on checkbox click
+                  className="cursor-pointer flex-shrink-0"
+                  title={`Select/deselect all files in ${item.name}`}
+                >
+                  {folderSelectionState === 'checked' && <CheckSquare size={20} weight="fill" className="text-primary opacity-70 dark:opacity-90 dark:group-hover:text-white dark:group-hover:opacity-60" />} {/* Slightly smaller */}
+                  {folderSelectionState === 'unchecked' && <Square size={20} weight="thin" className="opacity-30 group-hover:opacity-40" />}
+                  {folderSelectionState === 'indeterminate' && <MinusSquare size={20} weight="fill" className="text-primary opacity-70 dark:opacity-90 dark:group-hover:text-white dark:group-hover:opacity-60" />}
+                </span>
+              )}
+
+              {/* Material Folder Icon & Expansion Toggle */}
+              <span
+                className="cursor-pointer flex items-center flex-shrink-0" // Click area for toggling expansion
+                onClick={e => { e.stopPropagation(); toggleFolder(item.path); }} // Expand/collapse on icon click
+              >
+                <img src={iconPath} alt="" className="w-5 h-5 flex-shrink-0" />
+                {/* Expansion state is now visually indicated by the folder icon itself */}
+              </span>
+            </div>
           )}
 
-          {/* File Checkbox/Icon */}
+          {/* File Row: Icon + Checkbox */}
           {!isFolder && (
             <span className={clsx(
               "mr-1.5 text-text", // Spacing
-              'cursor-pointer flex items-center gap-1', // Use flex/gap, removed opacity changes
+              'flex items-center gap-1', // Container for file icon and checkbox
             )}>
               {/* File Type Icon */}
-              <span className="inline-block w-5 h-5 flex-shrink-0 text-orange-700">
-                {/* Use img tag for SVG - file icons don't need isExpanded */}
-                <img src={iconPath} alt="" className="w-full h-full fill-amber-300 text-blue-500" />
+              <span className="inline-block w-5 h-5 flex-shrink-0"> {/* No click here */}
+                <img src={iconPath} alt="" className="w-full h-full" />
               </span>
-              {/* Selection Checkbox */}
-              {isSelected ? (
-                <CheckSquare size={20} weight="duotone" className="opacity-60 group-hover:opacity-80" />
-              ) : (
-                <Square size={20} weight="duotone" className="opacity-60 group-hover:opacity-80" />
-              )}
+              {/* Selection Checkbox (Clickable handled by row) */}
+              <span className="cursor-pointer"> {/* Add cursor pointer hint */}
+                {isSelected ? (
+                  <CheckSquare size={20} weight="fill" className="opacity-60 group-hover:opacity-80" />
+                ) : (
+                  <Square size={20} weight="thin" className="opacity-60 group-hover:opacity-80" />
+                )}
+              </span>
             </span>
           )}
 
@@ -194,10 +247,11 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
             className={clsx(
               'item-name flex-1 truncate select-none text-sm', // Base styles
               {
-                'font-medium cursor-pointer': isFolder, // Use medium weight for folders
+                'font-medium': isFolder,
+                'cursor-pointer': isFolder, // Add pointer cursor back for folders
               }
             )}
-            onClick={e => { if (isFolder) { e.stopPropagation(); toggleFolder(item.path); } }} // Toggle folder on name click too
+            onClick={e => { if (isFolder) { e.stopPropagation(); toggleFolder(item.path); } }} // Expand/collapse on name click
           >
             {item.name}
           </span>
@@ -205,7 +259,12 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
 
         {/* Children */}
         {isFolder && isExpanded && (
-          <div className=" pl-2 ml-[calc(0.25rem+1.25rem*var(--level))] border-l border-border">
+          <div
+            className='pl-1 border-l border-border'
+            style={{
+              marginLeft: `0.75rem`,
+            }}
+          >
             {item.children.map(child => renderTreeItem(child, level + 1))}
           </div>
         )}

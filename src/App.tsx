@@ -4,7 +4,7 @@ import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
 import SettingsModal from "./components/SettingsModal";
-import GptreeLogo from './assets/gptree_logo.svg?react';
+// import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
 import { ArrowClockwise, Funnel, Gear, Moon, Sun } from '@phosphor-icons/react';
 import { cn } from './lib/utils';
@@ -638,7 +638,7 @@ function App() {
           data-tooltip-id="small-tooltip"
           data-tooltip-content="Visit the GPTree website"
         >
-          <GptreeLogo className="h-8 w-auto" />
+          {/* <GptreeLogo className="h-8 w-auto" /> */}
           <h1 className="text-2xl/none font-bold m-0 tracking-tighter">GPTree</h1>
         </a>
 
@@ -740,7 +740,7 @@ function App() {
       <div className="flex flex-row flex-grow gap-4 p-4 overflow-hidden">
         {!loading && !currentDirectory && (
           <div className="flex flex-col items-center justify-center w-full text-center text-[--light-text] p-8">
-            <GptreeLogo className="h-16 w-auto mb-4 text-muted-foreground opacity-50" />
+            {/* <GptreeLogo className="h-16 w-auto mb-4 text-muted-foreground opacity-50" /> */}
             <h2 className="text-xl font-semibold mb-2">Welcome to GPTree!</h2>
             <p className="mb-4">To get started, please select a project directory.</p>
             <button
@@ -785,8 +785,7 @@ function App() {
                 tree={directoryTree}
                 onFileSelection={handleFileSelection}
                 selectedFiles={selectedFiles}
-              // config={config || undefined}
-              // onRefresh={handleRefreshDirectoryTree}
+                enableFolderCheckboxes={settings?.enableFolderCheckboxes ?? true}
               />
             </div>
             <div className="flex flex-col gap-2 pt-3 border-t border-border flex-shrink-0">

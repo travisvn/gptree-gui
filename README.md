@@ -1,4 +1,5 @@
-# GPTree GUI 🌳  
+# GPTree GUI 🌳
+
 **Prep your codebase for LLMs — with full control, no IDE lock-in, and zero cloud dependencies.**
 
 ![Memory Usage](https://img.shields.io/badge/RAM~100MB-lightweight-brightgreen)
@@ -19,13 +20,15 @@ GPTree GUI lets you visually select which files from your local project to inclu
 ## ⚡ Why Use GPTree?
 
 Other tools (like Cursor or cloud-based repo summarizers) either:
+
 - Automatically include irrelevant files
 - Require installing a new IDE or extension
 - Send your code to the cloud without control
 
 **GPTree GUI is different**:
+
 - 🧩 Pick only what you want the model to see
-- 🧠 Use *your own* LLM (OpenAI, Claude, LM Studio, etc.)
+- 🧠 Use _your own_ LLM (OpenAI, Claude, LM Studio, etc.)
 - 🖥️ Works offline and respects `.gitignore`
 - ⚡ Outputs ready-to-paste markdown + source in seconds
 
@@ -55,12 +58,12 @@ Other tools (like Cursor or cloud-based repo summarizers) either:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/travisvn/gptree-gui/main/scripts/install.sh | sh
-````
+```
 
 ### 🪟 Windows
 
-* [Download GPTree for Windows (.exe)](https://github.com/travisvn/gptree-gui/releases/latest/download/GPTree-windows.exe)
-* [Download GPTree for Windows (.msi)](https://github.com/travisvn/gptree-gui/releases/latest/download/GPTree-windows.msi)
+- [Download GPTree for Windows (.exe)](https://github.com/travisvn/gptree-gui/releases/latest/download/GPTree-windows.exe)
+- [Download GPTree for Windows (.msi)](https://github.com/travisvn/gptree-gui/releases/latest/download/GPTree-windows.msi)
 
 ---
 
@@ -78,17 +81,17 @@ curl -fsSL https://raw.githubusercontent.com/travisvn/gptree-gui/main/scripts/in
 
 GPTree GUI uses the same config system as the [gptree CLI](https://github.com/travisvn/gptree):
 
-* Global config: `~/.gptreerc`
-* Local config: `.gptree_config` in the current repo
+- Global config: `~/.gptreerc`
+- Local config: `.gptree_config` in the current repo
 
 ---
 
 ## ⚙️ Tech Stack
 
-* Tauri (Rust backend, system Webview)
-* React + TypeScript + Tailwind (frontend)
-* Jotai (state management)
-* Vite (build tooling)
+- Tauri (Rust backend, system Webview)
+- React + TypeScript + Tailwind (frontend)
+- Jotai (state management)
+- Vite (build tooling)
 
 ---
 
