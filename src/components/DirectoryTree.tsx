@@ -171,7 +171,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
     const isExpanded = expandedFolders.has(item.path);
     const isSelected = localSelectedFiles.has(item.path);
     const isFolder = item.is_dir;
-    const isFileSelected = !isFolder && isSelected;
+    // const isFileSelected = !isFolder && isSelected;
     // Calculate folder checkbox state (only if it's a folder)
     const folderSelectionState = isFolder ? getFolderSelectionState(item, localSelectedFiles) : null;
     const iconPath = getMaterialIconPath(item.name, isFolder, isExpanded);
