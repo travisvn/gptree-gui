@@ -13,7 +13,7 @@
 GPTree GUI lets you visually select which files from your local project to include in a combined file tree + code output — perfect for pasting into ChatGPT, Claude, or a local LLM. It gives you full control over what the model sees, while respecting your privacy and workflow.
 
 🖼️ **Demo Screenshot**  
-![GPTree GUI Screenshot](https://0jg2h4r6p4.ufs.sh/f/ujtLcEbQI4O722QecZymQ4klBRw6yDvsdb5gXrK10Np8VcJZ)
+![GPTree GUI Screenshot](https://0jg2h4r6p4.ufs.sh/f/ujtLcEbQI4O7KnfAnMHF4jfM0TYVv6lRdakpIhgwiEJ5tzrZ)
 
 ---
 
