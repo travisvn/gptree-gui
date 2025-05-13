@@ -4,6 +4,7 @@ use crate::fs::{
 use crate::models::{
     AppError, Config, FileDetail, OutputContent, SAFE_MODE_MAX_FILES, SAFE_MODE_MAX_LENGTH,
 };
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 /// Combine the file contents with the directory structure
@@ -11,9 +12,13 @@ pub fn combine_files_with_structure(
     root_dir: &Path,
     config: &Config,
     selected_files: &[String],
+    current_excluded_dirs: &[String],
 ) -> Result<OutputContent, AppError> {
     let mut combined_content = Vec::new();
     let mut file_details = Vec::new();
+
+    // Convert current_excluded_dirs to HashSet for efficient lookup
+    let excluded_dirs_set: HashSet<String> = current_excluded_dirs.iter().cloned().collect();
 
     // Generate tree structure
     let tree_structure = generate_tree_structure(
@@ -23,6 +28,7 @@ pub fn combine_files_with_structure(
         config.show_default_ignored_in_tree,
         &config.include_file_types,
         &config.exclude_file_types,
+        &excluded_dirs_set,
     )?;
 
     combined_content.push("# Project Directory Structure:".to_string());

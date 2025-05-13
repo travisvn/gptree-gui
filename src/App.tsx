@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
@@ -22,7 +22,7 @@ const DEFAULT_DIRECTORY = import.meta.env.VITE_DEFAULT_DIRECTORY || '';
 
 // Define a default config object based on the Config interface
 const defaultConfig: Config = {
-  version: 2, // Match CONFIG_VERSION from Rust
+  version: 3, // Match CONFIG_VERSION from Rust
   use_git_ignore: true,
   include_file_types: "*",
   exclude_file_types: "",
@@ -36,12 +36,14 @@ const defaultConfig: Config = {
   show_ignored_in_tree: false,
   show_default_ignored_in_tree: false,
   previous_files: [],
+  exclude_dirs: "", // Added new field
 };
 
 function App() {
   const [currentDirectory, setCurrentDirectory] = useState<string>("");
   const [directoryTree, setDirectoryTree] = useState<DirectoryItem | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [sessionOnlyExcludedDirs, setSessionOnlyExcludedDirs] = useState<Set<string>>(new Set()); // For UI-only exclusions
 
   // --- Config State Management in App.tsx ---
   const [config, setConfig] = useState<Config | null>(null); // The active config being edited/displayed
@@ -75,6 +77,24 @@ function App() {
   const LOADING_DELAY = 300;
 
   const { width: windowWidth } = useWindowSize();
+
+  // Helper to convert CSV string to Set and vice-versa
+  const configStringToSet = (csvString: string | undefined): Set<string> => {
+    if (!csvString) return new Set();
+    return new Set(csvString.split(',').map(s => s.trim()).filter(Boolean));
+  };
+
+  // const setToString = (stringSet: Set<string>): string => {
+  //   return Array.from(stringSet).join(',');
+  // };
+
+  // Get effective excluded directories (combining config and session-only)
+  const getEffectiveExcludedDirs = useCallback((): Set<string> => {
+    const fromConfig = configStringToSet(config?.exclude_dirs);
+    // Merge with session-only exclusions
+    return new Set([...fromConfig, ...sessionOnlyExcludedDirs]);
+  }, [config?.exclude_dirs, sessionOnlyExcludedDirs]);
+
 
   const clearMessages = () => {
     setError(null);
@@ -164,10 +184,25 @@ function App() {
       const result = await invoke<{ success: boolean; data?: { global?: Config, local?: Config }; error?: string }>("get_configs", { path: dir });
       if (result.success && result.data) {
         log('Configs fetched successfully', 'debug');
-        const globalExists = !!result.data.global;
-        const localExists = !!result.data.local;
-        setGlobalConfig(result.data.global || null);
-        setLocalConfig(result.data.local || null);
+
+        const transformConfig = (cfg: Config | undefined | null): Config | null => {
+          if (!cfg) return null;
+          // Create a new object to avoid mutating the original backend response
+          const newCfg = { ...cfg };
+          if (Array.isArray(newCfg.exclude_dirs)) {
+            newCfg.exclude_dirs = (newCfg.exclude_dirs as unknown as string[]).join(',');
+          }
+          return newCfg;
+        };
+
+        const fetchedGlobalConfig = transformConfig(result.data.global);
+        const fetchedLocalConfig = transformConfig(result.data.local);
+
+        setGlobalConfig(fetchedGlobalConfig);
+        setLocalConfig(fetchedLocalConfig);
+
+        const globalExists = !!fetchedGlobalConfig;
+        const localExists = !!fetchedLocalConfig;
 
         let initialMode: 'global' | 'local' = 'global';
 
@@ -227,7 +262,7 @@ function App() {
         }
 
         setConfigMode(initialMode);
-        const activeConfig = initialMode === 'global' ? result.data.global : result.data.local;
+        const activeConfig = initialMode === 'global' ? fetchedGlobalConfig : fetchedLocalConfig;
         setConfig(activeConfig || null);
         originalConfigRef.current = activeConfig ? { ...activeConfig } : null; // Store original on fetch
         setIsConfigPanelDirty(false); // Reset dirty state
@@ -257,6 +292,7 @@ function App() {
     log(`Loading directory structure for: ${path}`, 'debug');
     clearMessages();
     startLoading(); // Start loading indicator
+    setSessionOnlyExcludedDirs(new Set()); // Reset session exclusions on new directory load
     try {
       const treeResult = await invoke<{ success: boolean; data?: DirectoryItem; error?: string }>(
         "load_directory",
@@ -265,9 +301,25 @@ function App() {
 
       if (treeResult.success && treeResult.data) {
         log('Directory tree loaded successfully', 'debug');
-        setSelectedFiles([]); // Reset file selection
-        setDirectoryTree(treeResult.data);
-        await fetchConfigs(path, currentSettings, modePreference); // Fetch configs *after* setting tree
+        const newTree = treeResult.data;
+        setDirectoryTree(newTree);
+
+        // Fetch configs and update config state *before* finalizing selections
+        await fetchConfigs(path, currentSettings, modePreference);
+
+        // Now that directoryTree and config state (via fetchConfigs) are updated,
+        // proceed with selection logic.
+        if (selectionToRestoreRef.current) {
+          const filesToTry = selectionToRestoreRef.current;
+          // Use the most up-to-date getEffectiveExcludedDirs which relies on the just-set config
+          const currentEffectiveExcludes = getEffectiveExcludedDirs();
+          const availableFiles = getDescendantFiles(newTree, currentEffectiveExcludes);
+          const restored = filesToTry.filter(file => availableFiles.includes(file));
+          setSelectedFiles(restored);
+          selectionToRestoreRef.current = null; // Clear the ref after attempting restoration
+        } else {
+          setSelectedFiles([]); // Standard reset if no restoration was intended
+        }
       } else if (treeResult.error) {
         setError(treeResult.error);
         log(`Error loading directory tree: ${treeResult.error}`, 'error');
@@ -296,23 +348,29 @@ function App() {
       if (!prevConfig) return null;
       const updatedConfig = { ...prevConfig, [field]: value };
 
-      // Check if dirty
-      const isDifferent = JSON.stringify(originalConfigRef.current?.[field]) !== JSON.stringify(value);
-      if (isDifferent && !isConfigPanelDirty) {
-        setIsConfigPanelDirty(true);
-      } else if (!isDifferent && isConfigPanelDirty) {
-        // Optional: Check if ALL fields are back to original to reset dirty state
-        const allSame = Object.keys(updatedConfig).every(
-          key => JSON.stringify(updatedConfig[key as keyof Config]) === JSON.stringify(originalConfigRef.current?.[key as keyof Config])
-        );
-        if (allSame) {
-          setIsConfigPanelDirty(false);
+      // Check if the new state (updatedConfig) is different from originalConfigRef.current
+      let isNowDirty = false;
+      if (originalConfigRef.current) {
+        // If originalConfigRef.current exists, compare updatedConfig against it
+        if (JSON.stringify(updatedConfig) !== JSON.stringify(originalConfigRef.current)) {
+          isNowDirty = true;
         }
+      } else {
+        // If there's no originalConfig (e.g., initial state before any config is loaded),
+        // any change could be considered "dirty" relative to a non-existent baseline.
+        // However, this case should ideally not lead to a savable dirty state if no config was loaded.
+        // For safety, let's assume if there's no original, but we have an updatedConfig, it's dirty.
+        // This path is less likely if UI prevents changes before a config is loaded.
+        isNowDirty = true;
+      }
+
+      if (isConfigPanelDirty !== isNowDirty) {
+        setIsConfigPanelDirty(isNowDirty);
       }
 
       return updatedConfig;
     });
-  }, [isConfigPanelDirty]);
+  }, [isConfigPanelDirty]); // originalConfigRef is a ref, its changes don't trigger re-render of this callback
 
   // Handler for ConfigPanel save button
   const handleSaveConfig = async () => {
@@ -320,6 +378,14 @@ function App() {
 
     // Keep track if loading should stop after save or after refresh
     let shouldStopLoadingAfterSave = true;
+
+    // Prepare the config to be sent to the backend
+    // Convert exclude_dirs from CSV string to string[] for the backend
+    const configToSend = {
+      ...config,
+      exclude_dirs: config.exclude_dirs?.split(',').map(s => s.trim()).filter(Boolean),
+      // previous_files is already string[] in frontend state, which matches Rust Vec<String>
+    };
 
     try {
       startLoading();
@@ -330,17 +396,19 @@ function App() {
 
       const result = await invoke<{ success: boolean; error?: string | AppError }>(
         "update_config",
-        { config: config } // Send the current edited config state
+        { config: configToSend } // Send the transformed config
       );
 
       if (result.success) {
         // Update the persistent stores (local/global) and original ref
+        // The frontend state `config.exclude_dirs` should remain a CSV string
+        // So, when we update localConfig/globalConfig, we use the original `config` state
         if (configMode === 'local') {
-          setLocalConfig({ ...config }); // Save the current state
+          setLocalConfig({ ...config }); // Save the current state (with CSV string for exclude_dirs)
         } else {
           setGlobalConfig({ ...config }); // Save the current state
         }
-        originalConfigRef.current = { ...config }; // Update original ref to current saved state
+        originalConfigRef.current = { ...config }; // Update original ref to current saved state (with CSV string)
         setIsConfigPanelDirty(false); // Reset dirty state
         sendSuccessMessage("Configuration saved", 2000);
 
@@ -350,7 +418,8 @@ function App() {
           config.exclude_file_types !== originalConfigForComparison.exclude_file_types ||
           config.use_git_ignore !== originalConfigForComparison.use_git_ignore ||
           config.show_ignored_in_tree !== originalConfigForComparison.show_ignored_in_tree ||
-          config.show_default_ignored_in_tree !== originalConfigForComparison.show_default_ignored_in_tree
+          config.show_default_ignored_in_tree !== originalConfigForComparison.show_default_ignored_in_tree ||
+          config.exclude_dirs !== originalConfigForComparison.exclude_dirs // Compare the CSV strings
         );
 
         // Refresh directory tree *after a delay* if file filtering settings have changed
@@ -393,12 +462,29 @@ function App() {
   }, []);
 
   const handleFileSelection = (files: string[]) => {
-    setSelectedFiles(files);
+    const effectiveExcludes = getEffectiveExcludedDirs();
+    const filteredSelectedFiles = files.filter(filePath => {
+      // Convert to relative path for checking against excluded dirs
+      const relativeFilePath = filePath.startsWith(currentDirectory + '/')
+        ? filePath.substring(currentDirectory.length + 1)
+        : filePath;
+
+      // Check if any parent directory of the file is in the excluded set
+      return !Array.from(effectiveExcludes).some(excludedDir =>
+        relativeFilePath.startsWith(excludedDir + '/') || relativeFilePath === excludedDir
+      );
+    });
+    setSelectedFiles(filteredSelectedFiles);
     clearMessages();
   };
 
   const handleGenerateOutput = async () => {
-    if (!selectedFiles.length) {
+    if (!selectedFiles.length && directoryTree) { // Check directoryTree to ensure not pre-initial load
+      const allFiles = getDescendantFiles(directoryTree, getEffectiveExcludedDirs()); // Get all files respecting exclusions
+      if (allFiles.length === 0 && configStringToSet(config?.exclude_dirs).size > 0) {
+        sendErrorMessage("No files available to select. Check excluded directories.");
+        return;
+      }
       sendErrorMessage("No files selected to generate output.");
       return;
     }
@@ -406,18 +492,55 @@ function App() {
       sendErrorMessage("Configuration not loaded.");
       return;
     }
+
+    const effectiveDirsToExcludeArray = Array.from(getEffectiveExcludedDirs());
+
     try {
       startLoading();
       clearMessages();
       const result = await invoke<{ success: boolean; data?: OutputContent; error?: string }>(
         "generate_output",
-        { selectedFiles }
+        { selectedFiles, excludedDirs: effectiveDirsToExcludeArray } // Pass excludedDirs to backend
       );
       if (result.success && result.data) {
         setOutput(result.data);
         if (config?.copy_to_clipboard) {
           setPendingClipboardCopy(true);
         }
+
+        // If store_files_chosen is true, update config with current selections and exclusions
+        if (config.store_files_chosen && configMode === 'local') { // Only for local config as per original request
+          const newPreviousFiles = selectedFiles.map(sf =>
+            sf.startsWith(currentDirectory + '/') ? sf.substring(currentDirectory.length + 1) : sf
+          );
+          const newExcludedDirsCsv = effectiveDirsToExcludeArray.join(',');
+
+          // Create a new config object with these updates for saving
+          const updatedConfigForSave = {
+            ...config,
+            previous_files: newPreviousFiles,
+            exclude_dirs: newExcludedDirsCsv,
+          };
+
+          // Update the main config state directly for handleSaveConfig to pick up
+          // This avoids calling onConfigChange multiple times and triggering too many re-renders.
+          setConfig(updatedConfigForSave);
+          originalConfigRef.current = { ...updatedConfigForSave }; // Also update original ref to prevent false dirty state
+          setIsConfigPanelDirty(false); // Since we are programmatically updating and intending to save
+          setSessionOnlyExcludedDirs(new Set()); // Clear session exclusions as they are now in config
+
+          // Call save config to persist (this will use the updatedConfigForSave from setConfig)
+          // No, handleSaveConfig uses the `config` state which we just set.
+          // We need to ensure isConfigPanelDirty is true for handleSaveConfig to proceed, or call a direct save.
+          // Let's make it dirty and then call save.
+          log("Storing chosen files and excluded directories into local config...", "debug");
+          setIsConfigPanelDirty(true); // Mark as dirty to enable save
+          await handleSaveConfig(); // Save the updated config
+          // Note: handleSaveConfig internally resets isConfigPanelDirty to false on success.
+        } else if (config.store_files_chosen && configMode !== 'local') {
+          log("Store files chosen is enabled, but not in local config mode. Excluded directories won't be saved to global config.", "info")
+        }
+
       } else if (result.error) {
         setError(result.error);
       }
@@ -462,6 +585,10 @@ function App() {
       sendErrorMessage("Save or discard changes before switching config mode.", 3000);
       return;
     }
+    setSessionOnlyExcludedDirs(new Set()); // Reset session exclusions on config mode switch
+
+    selectionToRestoreRef.current = [...selectedFiles]; // Preserve current selection
+
     try {
       startLoading();
       clearMessages();
@@ -506,6 +633,51 @@ function App() {
     } finally {
       stopLoading();
     }
+  };
+
+  const handleToggleUIDirectoryExclusion = (dirPath: string) => {
+    const makeRelative = (dp: string) => dp.startsWith(currentDirectory + '/')
+      ? dp.substring(currentDirectory.length + 1)
+      : dp;
+    const relativePath = makeRelative(dirPath);
+
+    const configExcludesSet = configStringToSet(config?.exclude_dirs);
+
+    if (configExcludesSet.has(relativePath)) {
+      // It's in the persisted config, so we need to modify the config string
+      log(`Attempting to re-include directory from config: ${relativePath}`, 'debug');
+      const newConfigExcludesArray = Array.from(configExcludesSet).filter(p => p !== relativePath);
+      const newConfigExcludesCsv = newConfigExcludesArray.join(',');
+      handleConfigChange('exclude_dirs', newConfigExcludesCsv); // This marks ConfigPanel dirty
+
+      // Also ensure it's not in session-only (it shouldn't be if this logic path is taken)
+      setSessionOnlyExcludedDirs(prev => {
+        const next = new Set(prev);
+        if (next.has(relativePath)) {
+          next.delete(relativePath);
+          log(`Removed ${relativePath} from session exclusions as it was re-included from config.`, 'debug');
+        }
+        return next;
+      });
+    } else {
+      // Not in persisted config, so toggle in session-only set
+      setSessionOnlyExcludedDirs(prev => {
+        const next = new Set(prev);
+        if (next.has(relativePath)) {
+          next.delete(relativePath);
+          log(`Temporarily un-excluded directory: ${relativePath}`, 'debug');
+        } else {
+          next.add(relativePath);
+          log(`Temporarily excluded directory: ${relativePath}`, 'debug');
+        }
+        return next;
+      });
+    }
+    // Important: After changing config.exclude_dirs via handleConfigChange,
+    // the `getEffectiveExcludedDirs` will update, and DirectoryTree will re-render.
+    // We might need to trigger a re-filtering of selected files if a directory is re-included.
+    // For now, this is implicitly handled by selectedFiles being managed by DirectoryTree's local state
+    // and its own filtering logic which uses effectiveExcludedDirs.
   };
 
   useEffect(() => {
@@ -620,6 +792,36 @@ function App() {
       return `Only: ${config.include_file_types}`;
     }
   };
+
+  // Helper to get all descendant file paths (visible in the current tree structure)
+  // Needs to be updated to respect excluded directories passed to it
+  const getDescendantFiles = useCallback((item: DirectoryItem, excludedDirsSet: Set<string>): string[] => {
+    let paths: string[] = [];
+    const itemRelativePath = item.path.startsWith(currentDirectory + '/')
+      ? item.path.substring(currentDirectory.length + 1)
+      : item.path;
+
+    // If the item itself is an excluded directory, return no paths from it
+    if (item.is_dir && excludedDirsSet.has(itemRelativePath)) {
+      return [];
+    }
+
+    if (!item.is_dir) {
+      paths.push(item.path);
+    } else if (item.children) {
+      item.children.forEach(child => {
+        paths = paths.concat(getDescendantFiles(child, excludedDirsSet)); // Pass the set down
+      });
+    }
+    return paths;
+  }, [currentDirectory]);
+
+  const allFilePathsInTree = useMemo(() => {
+    if (!directoryTree) return [];
+    return getDescendantFiles(directoryTree, getEffectiveExcludedDirs());
+  }, [directoryTree, getEffectiveExcludedDirs, getDescendantFiles]);
+
+  const selectionToRestoreRef = useRef<string[] | null>(null);
 
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden bg-background text-text relative">
@@ -786,11 +988,15 @@ function App() {
                 onFileSelection={handleFileSelection}
                 selectedFiles={selectedFiles}
                 enableFolderCheckboxes={settings?.enableFolderCheckboxes ?? true}
+                effectiveExcludedDirs={getEffectiveExcludedDirs()}
+                configDefinedExclusions={configStringToSet(config?.exclude_dirs)}
+                onToggleUIDirectoryExclusion={handleToggleUIDirectoryExclusion}
+                currentDirectory={currentDirectory}
               />
             </div>
             <div className="flex flex-col gap-2 pt-3 border-t border-border flex-shrink-0">
               <div className="flex justify-between items-center text-sm text-[--light-text]">
-                <span>{selectedFiles?.length ?? 0} files selected</span>
+                <span className="text-xs text-muted-foreground">{selectedFiles?.length ?? 0} of {allFilePathsInTree.length} files selected</span>
                 {config?.store_files_chosen && localConfig?.previous_files?.length && localConfig.previous_files.length > 0 && (
                   <button
                     onClick={() => {
@@ -877,6 +1083,7 @@ function App() {
                 isDirty={isConfigPanelDirty}
                 disabled={loading}
                 className="flex-shrink-0"
+                configMode={configMode as 'global' | 'local'}
               />
             )}
             {!config && !loading && (

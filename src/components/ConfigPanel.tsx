@@ -14,6 +14,7 @@ interface ConfigPanelProps {
   isDirty: boolean; // Parent tells us if form is dirty
   disabled: boolean;
   className?: string;
+  configMode: 'global' | 'local'; // Added configMode prop
 }
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({
@@ -23,7 +24,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
   onReset,
   isDirty,
   disabled,
-  className = ""
+  className = "",
+  configMode, // Destructure configMode
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [debugEnabled, setDebugEnabled] = useAtom(debugEnabledAtom);
@@ -183,6 +185,24 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
             />
           </div>
         </div>
+
+        {configMode === 'local' && ( // Conditionally render for local config only
+          <div className="config-section mb-4 pb-2">
+            <h4 className="text-sm font-medium text-[--light-text] mb-2">Directory Exclusions</h4>
+            <div className="config-option flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+              <label htmlFor="exclude-dirs" className="flex-shrink-0 mb-1 sm:mb-0">Exclude Dirs (CSV):</label>
+              <Input
+                type="text"
+                id="exclude-dirs"
+                value={config.exclude_dirs}
+                onChange={(e) => handleTextChange('exclude_dirs', e.target.value)}
+                placeholder="node_modules,dist,.git,target"
+                disabled={disabled}
+                className="w-full"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="config-section mb-4 pb-2">
           <h4 className="text-sm font-medium text-[--light-text] mb-2">Output Options</h4>

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Current version of the configuration file format
-pub const CONFIG_VERSION: u32 = 2;
+pub const CONFIG_VERSION: u32 = 3;
 
 /// Default constants
 pub const DEFAULT_IGNORES: [&str; 6] = [
@@ -34,6 +34,8 @@ pub struct Config {
     pub show_default_ignored_in_tree: bool,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub previous_files: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub exclude_dirs: Vec<String>,
 }
 
 impl Default for Config {
@@ -53,6 +55,7 @@ impl Default for Config {
             show_ignored_in_tree: false,
             show_default_ignored_in_tree: false,
             previous_files: Vec::new(),
+            exclude_dirs: Vec::new(),
         }
     }
 }
@@ -64,6 +67,8 @@ pub struct DirectoryItem {
     pub is_dir: bool,
     pub is_selected: bool,
     pub children: Vec<DirectoryItem>,
+    #[serde(default)]
+    pub is_excluded_by_config: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

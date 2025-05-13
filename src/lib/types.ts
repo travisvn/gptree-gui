@@ -5,6 +5,7 @@ export interface DirectoryItem {
   is_dir: boolean;
   is_selected: boolean;
   children: DirectoryItem[];
+  is_excluded_by_config?: boolean;
 }
 
 export interface Config {
@@ -22,6 +23,7 @@ export interface Config {
   show_ignored_in_tree: boolean;
   show_default_ignored_in_tree: boolean;
   previous_files: string[];
+  exclude_dirs: string;
 }
 
 export interface OutputContent {

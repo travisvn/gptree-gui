@@ -53,6 +53,7 @@ pub fn generate_tree_structure(
     show_default_ignored: bool,
     include_file_types: &str,
     exclude_file_types: &str,
+    excluded_dirs: &HashSet<String>,
 ) -> Result<TreeStructure, AppError> {
     // Load gitignore if requested
     let gitignore = if use_gitignore {
@@ -113,6 +114,7 @@ pub fn generate_tree_structure(
         show_ignored: bool,
         show_default_ignored: bool,
         should_include_file: &dyn Fn(&Path) -> bool,
+        excluded_dirs: &HashSet<String>,
     ) -> Result<(), AppError> {
         // Get directory entries
         let entries = fs::read_dir(dir_path)?
@@ -126,6 +128,16 @@ pub fn generate_tree_structure(
             .filter(|entry| {
                 // Always include directories for tree structure
                 if entry.is_dir() {
+                    // Check if directory is in excluded_dirs
+                    let relative_path_to_check = entry
+                        .strip_prefix(root_dir)
+                        .unwrap_or(entry)
+                        .to_string_lossy()
+                        .into_owned();
+                    if excluded_dirs.contains(&relative_path_to_check) {
+                        return false; // Skip this directory and its children
+                    }
+
                     if show_ignored {
                         return true;
                     } else {
@@ -231,6 +243,7 @@ pub fn generate_tree_structure(
                     show_ignored,
                     show_default_ignored,
                     should_include_file,
+                    excluded_dirs,
                 )?;
             } else if item_path.is_file() {
                 file_list.push(item_path.to_string_lossy().into_owned());
@@ -250,6 +263,7 @@ pub fn generate_tree_structure(
         show_ignored,
         show_default_ignored,
         &should_include_file,
+        excluded_dirs,
     )?;
 
     Ok(TreeStructure {
@@ -294,6 +308,7 @@ pub fn get_directory_tree(
     show_default_ignored: bool,
     include_file_types: &str,
     exclude_file_types: &str,
+    excluded_dirs_config: &HashSet<String>,
 ) -> Result<DirectoryItem, AppError> {
     // Load gitignore if requested
     let gitignore = if use_gitignore {
@@ -322,7 +337,12 @@ pub fn get_directory_tree(
         .collect();
 
     // Helper function to check if a file should be included based on its extension
-    let should_include_file = |path: &Path| -> bool {
+    let should_include_file_for_ui = |path: &Path| -> bool {
+        if path.is_dir() {
+            // For directories, we generally include them if they pass gitignore/default ignore checks.
+            // The `is_excluded_by_config` flag will handle the visual cue for excluded dirs.
+            return true;
+        }
         if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
             let ext = format!(".{}", extension.to_lowercase());
             if include_all {
@@ -331,8 +351,7 @@ pub fn get_directory_tree(
                 included_extensions.contains(&ext)
             }
         } else {
-            // Files without extensions
-            include_all // Include only if we're including all files
+            include_all
         }
     };
 
@@ -343,11 +362,12 @@ pub fn get_directory_tree(
         .to_string();
 
     let mut root_item = DirectoryItem {
-        name: root_name,
+        name: root_name.clone(), // Clone root_name
         path: root_dir.to_string_lossy().to_string(),
         is_dir: true,
         is_selected: false,
         children: Vec::new(),
+        is_excluded_by_config: excluded_dirs_config.contains(&"".to_string()), // Root cannot be excluded this way
     };
 
     // Build the tree recursively
@@ -358,7 +378,8 @@ pub fn get_directory_tree(
         gitignore: &Option<ignore::gitignore::Gitignore>,
         show_ignored: bool,
         show_default_ignored: bool,
-        should_include_file: &dyn Fn(&Path) -> bool,
+        should_include_file_for_ui: &dyn Fn(&Path) -> bool,
+        excluded_dirs_config: &HashSet<String>,
     ) -> Result<(), AppError> {
         let entries = fs::read_dir(dir_path)?
             .filter_map(Result::ok)
@@ -369,48 +390,42 @@ pub fn get_directory_tree(
         let mut items: Vec<PathBuf> = entries
             .into_iter()
             .filter(|entry| {
-                // Always include directories
+                // For get_directory_tree (UI): DO NOT filter out dirs from excluded_dirs_config here.
+                // We mark them with is_excluded_by_config instead.
+                // Original logic for gitignore and default ignores still applies.
                 if entry.is_dir() {
                     if show_ignored {
                         return true;
-                    } else {
-                        let should_ignore = if let Some(gitignore) = gitignore {
-                            gitignore.matched(entry, true).is_ignore()
-                        } else {
-                            false
-                        };
-
-                        let is_default_ignored = is_default_ignored(entry);
-
-                        if show_default_ignored {
-                            return !should_ignore;
-                        } else {
-                            return !should_ignore && !is_default_ignored;
-                        }
                     }
-                }
-
-                // For files, apply both gitignore and extension filters
-                let passes_gitignore = if show_ignored {
-                    true
-                } else {
-                    let should_ignore = if let Some(gitignore) = gitignore {
-                        gitignore.matched(entry, false).is_ignore()
+                    let should_ignore_git = if let Some(gi) = gitignore {
+                        gi.matched(entry, true).is_ignore()
                     } else {
                         false
                     };
-
-                    let is_default_ignored = is_default_ignored(entry);
-
+                    let is_default = is_default_ignored(entry);
                     if show_default_ignored {
-                        !should_ignore
+                        return !should_ignore_git;
+                    }
+                    return !should_ignore_git && !is_default;
+                }
+
+                // For files, apply gitignore and extension filters
+                let passes_gitignore = if show_ignored {
+                    true
+                } else {
+                    let should_ignore_git = if let Some(gi) = gitignore {
+                        gi.matched(entry, false).is_ignore()
                     } else {
-                        !should_ignore && !is_default_ignored
+                        false
+                    };
+                    let is_default = is_default_ignored(entry);
+                    if show_default_ignored {
+                        !should_ignore_git
+                    } else {
+                        !should_ignore_git && !is_default
                     }
                 };
-
-                // Only apply file type filtering if the file passes the gitignore filter
-                passes_gitignore && should_include_file(entry)
+                passes_gitignore && should_include_file_for_ui(entry)
             })
             .collect();
 
@@ -431,12 +446,17 @@ pub fn get_directory_tree(
 
         for item_path in items {
             let is_directory = item_path.is_dir();
-
             let item_name = item_path
                 .file_name()
                 .and_then(|name| name.to_str())
                 .unwrap_or("")
                 .to_string();
+
+            let relative_path_str = item_path
+                .strip_prefix(root_dir) // Calculate relative path
+                .unwrap_or(&item_path) // Fallback to absolute if strip fails (should not happen for children)
+                .to_string_lossy()
+                .into_owned();
 
             let mut item = DirectoryItem {
                 name: item_name,
@@ -444,6 +464,11 @@ pub fn get_directory_tree(
                 is_dir: is_directory,
                 is_selected: false,
                 children: Vec::new(),
+                is_excluded_by_config: if is_directory {
+                    excluded_dirs_config.contains(&relative_path_str)
+                } else {
+                    false
+                },
             };
 
             if is_directory {
@@ -454,20 +479,17 @@ pub fn get_directory_tree(
                     gitignore,
                     show_ignored,
                     show_default_ignored,
-                    should_include_file,
+                    should_include_file_for_ui,
+                    excluded_dirs_config,
                 )?;
-
-                // Only add directories that have children (either files or subdirectories)
-                // This prevents empty directories from showing up in the tree
-                if !item.children.is_empty() {
+                // Add directory to parent's children if it's not empty OR it's explicitly excluded by config (so user can see and potentially un-exclude it)
+                if !item.children.is_empty() || item.is_excluded_by_config {
                     parent_item.children.push(item);
                 }
             } else {
-                // Files are always added if they've passed the filter
                 parent_item.children.push(item);
             }
         }
-
         Ok(())
     }
 
@@ -478,7 +500,8 @@ pub fn get_directory_tree(
         &gitignore,
         show_ignored,
         show_default_ignored,
-        &should_include_file,
+        &should_include_file_for_ui,
+        excluded_dirs_config,
     )?;
 
     Ok(root_item)

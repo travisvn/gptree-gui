@@ -120,6 +120,13 @@ fn load_config(config_path: &Path) -> Result<Config, AppError> {
                         value.split(',').map(|s| s.trim().to_string()).collect()
                     };
                 }
+                "excludeDirs" => {
+                    config.exclude_dirs = if value.is_empty() {
+                        Vec::new()
+                    } else {
+                        value.split(',').map(|s| s.trim().to_string()).collect()
+                    };
+                }
                 _ => {}
             }
         }
@@ -221,6 +228,19 @@ pub fn save_config(config_path: &Path, config: &Config, is_global: bool) -> Resu
                     println!("[GPTree] Error: {}", err_msg);
                     return Err(AppError::Config(err_msg));
                 }
+
+                // Add exclude_dirs for local config
+                let exclude_dirs_result = writeln!(
+                    file,
+                    "# Excluded directories (when using the -s or --save flag previously or edited in UI)"
+                )
+                .and_then(|_| writeln!(file, "excludeDirs: {}", config.exclude_dirs.join(",")));
+
+                if let Err(e) = exclude_dirs_result {
+                    let err_msg = format!("Failed to write exclude_dirs to config file: {}", e);
+                    println!("[GPTree] Error: {}", err_msg);
+                    return Err(AppError::Config(err_msg));
+                }
             }
 
             match write_result {
@@ -293,6 +313,12 @@ fn migrate_config(mut config: Config, is_global: bool) -> Config {
             config.show_ignored_in_tree = false;
             config.show_default_ignored_in_tree = false;
             config.version = 2;
+        }
+
+        if config.version < 3 {
+            // Migrate from version 2 to 3
+            config.exclude_dirs = Vec::new();
+            config.version = 3;
         }
 
         // Add more migration steps here as needed

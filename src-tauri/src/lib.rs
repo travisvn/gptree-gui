@@ -8,6 +8,7 @@ mod processor;
 
 use models::{AppError, Config, DirectoryItem, OutputContent};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fs as StdFs;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
@@ -150,6 +151,9 @@ async fn load_directory(
         }
     };
 
+    // Convert exclude_dirs from Vec<String> to HashSet<String> for fs function
+    let excluded_dirs_set: HashSet<String> = display_config.exclude_dirs.iter().cloned().collect();
+
     // Load directory tree based on display settings
     match fs::get_directory_tree(
         path,
@@ -158,6 +162,7 @@ async fn load_directory(
         display_config.show_default_ignored_in_tree,
         &display_config.include_file_types,
         &display_config.exclude_file_types,
+        &excluded_dirs_set,
     ) {
         Ok(tree) => Ok(CommandResult::success(tree)),
         Err(e) => Ok(CommandResult::error(format!(
@@ -215,6 +220,7 @@ async fn update_config(
 #[tauri::command]
 async fn generate_output(
     selected_files: Vec<String>,
+    excluded_dirs: Vec<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<CommandResult<OutputContent>, String> {
     let current_dir = state.current_dir.lock().unwrap().clone();
@@ -237,7 +243,12 @@ async fn generate_output(
     };
 
     // Process the files
-    match processor::combine_files_with_structure(&current_dir, &config, &selected_files) {
+    match processor::combine_files_with_structure(
+        &current_dir,
+        &config,
+        &selected_files,
+        &excluded_dirs,
+    ) {
         Ok(mut output) => {
             // Save the list of selected files if configured
             if config.store_files_chosen {
