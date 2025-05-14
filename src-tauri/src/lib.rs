@@ -69,6 +69,7 @@ struct AppSettings {
     default_to_local_config: bool,
     prompt_for_directory_on_startup: bool,
     enable_folder_checkboxes: bool,
+    auto_show_output_preview: bool,
 }
 
 // Default implementation for AppSettings
@@ -78,6 +79,7 @@ impl Default for AppSettings {
             default_to_local_config: false, // Default: prefer global config
             prompt_for_directory_on_startup: false, // Default: prompt user if no last dir (changed to false)
             enable_folder_checkboxes: true,         // <-- Default to true
+            auto_show_output_preview: true,         // Default for the new setting
         }
     }
 }

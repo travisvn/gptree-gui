@@ -285,10 +285,31 @@ pub fn read_file_content(file_path: &Path) -> Result<String, AppError> {
 
 /// Add line numbers to content
 pub fn add_line_numbers(content: &str) -> String {
-    content
-        .lines()
+    let lines_vec: Vec<&str> = content.lines().collect();
+    let num_lines = lines_vec.len();
+
+    if num_lines == 0 {
+        return String::new();
+    }
+
+    // Calculate the width needed for line numbers.
+    // e.g., num_lines = 9   => width = 1
+    //       num_lines = 10  => width = 2
+    //       num_lines = 99  => width = 2
+    //       num_lines = 100 => width = 3
+    let width = (num_lines as f64).log10().floor() as usize + 1;
+
+    lines_vec
+        .into_iter()
         .enumerate()
-        .map(|(i, line)| format!("{:4} | {}", i + 1, line))
+        .map(|(i, line)| {
+            format!(
+                "{number:>width$} | {text}",
+                number = i + 1,
+                width = width,
+                text = line
+            )
+        })
         .collect::<Vec<String>>()
         .join("\n")
 }

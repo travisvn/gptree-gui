@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
-import { Copy, FileText, DownloadSimple, Eye, EyeSlash } from '@phosphor-icons/react';
+import { Copy, FileText, DownloadSimple, Eye, EyeSlash, SelectionAll, ArrowCounterClockwise, Check } from '@phosphor-icons/react';
 import { OutputContent } from '../lib/types';
 import { useSignalListener } from '../hooks/useSignalListener';
 import { useAtom, useAtomValue } from 'jotai';
-import { debugEnabledAtom, logsAtom } from '../lib/store/atoms';
+import { debugEnabledAtom, logsAtom, settingsAtom } from '../lib/store/atoms';
 import { SignalPayload } from '../hooks/signals';
 
 interface OutputPanelProps {
@@ -35,13 +35,18 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   outputFileLocally,
   outputFileName
 }) => {
-  const [showPreview, setShowPreview] = useState(false);
+  const appSettings = useAtomValue(settingsAtom);
+  const [showPreview, setShowPreview] = useState(appSettings?.autoShowOutputPreview ?? false);
   const [copied, setCopied] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   const [logs, setLogs] = useAtom(logsAtom);
   const debugEnabledDynamically = useAtomValue(debugEnabledAtom);
-  // const [logs, setLogs] = useState<SignalLog[]>([]);
+
+  const [editedPreviewContent, setEditedPreviewContent] = useState<string>("");
+  const [isPreviewDirty, setIsPreviewDirty] = useState<boolean>(false);
+  const previewTextAreaRef = useRef<HTMLTextAreaElement>(null);
+  const [previewCopied, setPreviewCopied] = useState(false);
 
   // Determine if the button should be disabled and why
   const isOpenDisabled = disabled || ((!saveOutputFile || !outputFileLocally) && !outputFileName);
@@ -54,20 +59,24 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     }
   }
 
-  // Truncate content for preview
-  const getPreviewContent = () => {
-    const maxPreviewLength = 2000; // Increased preview length
-    if (output.combined_content.length > maxPreviewLength) {
-      return (
-        output.combined_content.substring(0, maxPreviewLength) +
-        '\n\n... [Content truncated for preview] ...'
-      );
-    }
+  // Original content for comparison
+  const getOriginalPreviewContent = () => {
     return output.combined_content;
   };
 
-  // when using `"withGlobalTauri": true`, you may use
-  // const { save } = window.__TAURI__.dialog;
+  useEffect(() => {
+    if (showPreview && output) {
+      const originalContent = getOriginalPreviewContent();
+      setEditedPreviewContent(originalContent);
+      setIsPreviewDirty(false);
+    }
+  }, [output, showPreview]);
+
+  useEffect(() => {
+    if (showPreview && output) {
+      setIsPreviewDirty(editedPreviewContent !== getOriginalPreviewContent());
+    }
+  }, [editedPreviewContent, output, showPreview]);
 
   // Download output as file
   const handleDownload = async () => {
@@ -103,19 +112,49 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     }
   };
 
-  // Copy with feedback
+  // Copy with feedback (main copy button)
   const handleCopy = () => {
-    onCopyToClipboard();
+    onCopyToClipboard(); // This copies the original output.combined_content
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
   useSignalListener('log', (data: SignalPayload<'log'>) => {
-    // console.log('log', JSON.stringify(data, null, 2));
     if (data) {
       setLogs((prevLogs) => [...prevLogs, data]);
     }
   });
+
+  const handlePreviewChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditedPreviewContent(event.target.value || "");
+  };
+
+  const handlePreviewSelectAll = () => {
+    if (previewTextAreaRef.current) {
+      previewTextAreaRef.current.select();
+    }
+  };
+
+  const handlePreviewCopy = async () => {
+    if (editedPreviewContent) {
+      try {
+        await navigator.clipboard.writeText(editedPreviewContent);
+        setPreviewCopied(true);
+        onCopyToClipboard(); // Call the main copy handler to trigger global message
+        setTimeout(() => setPreviewCopied(false), 1500);
+      } catch (err) {
+        console.error('Failed to copy preview content:', err);
+        // Optionally show an error message to the user
+      }
+    }
+  };
+
+  const handlePreviewReset = () => {
+    if (output) {
+      setEditedPreviewContent(getOriginalPreviewContent());
+      setIsPreviewDirty(false);
+    }
+  };
 
   return (
     <div className={`output-panel flex flex-col p-3 border rounded-lg shadow-sm bg-[--light-bg] border-[--border-color] overflow-hidden ${className} relative`}>
@@ -133,7 +172,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
           disabled={disabled}
           className="button primary-button flex items-center gap-1.5 duration-200 transition-colors"
         >
-          <Copy size={16} /> {copied ? 'Copied!' : 'Copy'}
+          <Copy size={16} /> {copied ? 'Copied!' : (isPreviewDirty ? 'Copy Original' : 'Copy')}
         </button>
 
         <span
@@ -168,11 +207,45 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
       </div>
 
       {showPreview && (
-        <div className="output-preview mt-1 flex-grow overflow-hidden flex flex-col min-h-0">
+        <div className="output-preview mt-1 flex-grow overflow-hidden flex flex-col min-h-0 relative">
+          <div className="absolute top-1 right-1 z-10 flex gap-1">
+            {isPreviewDirty && (
+              <button
+                onClick={handlePreviewReset}
+                className="button p-1 text-xs bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 rounded"
+                title="Reset Changes"
+                data-tooltip-id="small-tooltip"
+                data-tooltip-content="Reset Changes"
+              >
+                <ArrowCounterClockwise size={14} />
+              </button>
+            )}
+            <button
+              onClick={handlePreviewSelectAll}
+              className="button p-1 text-xs bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 rounded"
+              title="Select All"
+              data-tooltip-id="small-tooltip"
+              data-tooltip-content="Select All"
+            >
+              <SelectionAll size={14} />
+            </button>
+            <button
+              onClick={handlePreviewCopy}
+              className="button p-1 text-xs bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 rounded"
+              title="Copy Preview"
+              data-tooltip-id="small-tooltip"
+              data-tooltip-content="Copy Preview"
+            >
+              {previewCopied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+          </div>
           <h4 className="text-sm font-medium text-[--light-text] mb-1 flex-shrink-0">Content Preview</h4>
-          <pre className="flex-grow overflow-y-auto p-2 rounded bg-[--background] text-xs leading-relaxed">
-            {getPreviewContent()}
-          </pre>
+          <textarea
+            ref={previewTextAreaRef}
+            value={editedPreviewContent}
+            onChange={handlePreviewChange}
+            className="flex-grow overflow-y-auto p-2 rounded bg-[--background] text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-[--primary-color] no-strikethrough font-mono resize-none"
+          />
         </div>
       )}
 
@@ -181,7 +254,6 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
           <div className='flex flex-col gap-1'>
             {logs && logs.length > 0 && logs.map((log, index) => (
               <div key={index} className='text-xs'>
-                {/* [{logs.length - index}] - {log?.message} */}
                 [{index + 1}] - {log?.message}
               </div>
             ))}

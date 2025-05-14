@@ -510,33 +510,34 @@ function App() {
 
         // If store_files_chosen is true, update config with current selections and exclusions
         if (config.store_files_chosen && configMode === 'local') { // Only for local config as per original request
+          const currentPreviousFiles = config.previous_files || [];
+          const currentExcludeDirsCsv = config.exclude_dirs || "";
+
           const newPreviousFiles = selectedFiles.map(sf =>
             sf.startsWith(currentDirectory + '/') ? sf.substring(currentDirectory.length + 1) : sf
           );
           const newExcludedDirsCsv = effectiveDirsToExcludeArray.join(',');
 
-          // Create a new config object with these updates for saving
-          const updatedConfigForSave = {
-            ...config,
-            previous_files: newPreviousFiles,
-            exclude_dirs: newExcludedDirsCsv,
-          };
+          const previousFilesChanged = JSON.stringify(newPreviousFiles) !== JSON.stringify(currentPreviousFiles);
+          const excludeDirsChanged = newExcludedDirsCsv !== currentExcludeDirsCsv;
 
-          // Update the main config state directly for handleSaveConfig to pick up
-          // This avoids calling onConfigChange multiple times and triggering too many re-renders.
-          setConfig(updatedConfigForSave);
-          originalConfigRef.current = { ...updatedConfigForSave }; // Also update original ref to prevent false dirty state
-          setIsConfigPanelDirty(false); // Since we are programmatically updating and intending to save
-          setSessionOnlyExcludedDirs(new Set()); // Clear session exclusions as they are now in config
+          if (previousFilesChanged || excludeDirsChanged) {
+            log("Storing chosen files and/or excluded directories into local config...", "debug");
+            const updatedConfigForStorage = {
+              ...config,
+              previous_files: newPreviousFiles,
+              exclude_dirs: newExcludedDirsCsv,
+            };
+            setConfig(updatedConfigForStorage);
+            setIsConfigPanelDirty(true); // Mark as dirty due to programmatic change requiring save
+            setSessionOnlyExcludedDirs(new Set()); // Clear session exclusions as they are now in config
 
-          // Call save config to persist (this will use the updatedConfigForSave from setConfig)
-          // No, handleSaveConfig uses the `config` state which we just set.
-          // We need to ensure isConfigPanelDirty is true for handleSaveConfig to proceed, or call a direct save.
-          // Let's make it dirty and then call save.
-          log("Storing chosen files and excluded directories into local config...", "debug");
-          setIsConfigPanelDirty(true); // Mark as dirty to enable save
-          await handleSaveConfig(); // Save the updated config
-          // Note: handleSaveConfig internally resets isConfigPanelDirty to false on success.
+            await handleSaveConfig(); // Save the updated config
+            // Note: handleSaveConfig internally resets isConfigPanelDirty to false on success
+            // and updates originalConfigRef.current.
+          } else {
+            log("Store files chosen: No changes to previous files or excluded directories to save.", "debug");
+          }
         } else if (config.store_files_chosen && configMode !== 'local') {
           log("Store files chosen is enabled, but not in local config mode. Excluded directories won't be saved to global config.", "info")
         }

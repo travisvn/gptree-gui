@@ -5,13 +5,14 @@ use std::collections::HashSet;
 pub const CONFIG_VERSION: u32 = 3;
 
 /// Default constants
-pub const DEFAULT_IGNORES: [&str; 6] = [
+pub const DEFAULT_IGNORES: [&str; 7] = [
     ".git",
     ".vscode",
     "__pycache__",
     ".DS_Store",
     ".idea",
     ".gitignore",
+    ".gptree_config",
 ];
 
 pub const SAFE_MODE_MAX_FILES: usize = 30;

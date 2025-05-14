@@ -135,6 +135,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   disabled={isLoading}
                 />
               </div>
+              <div className="flex items-center justify-between space-x-2">
+                <Label htmlFor="auto-show-preview-switch" className="flex flex-col space-y-1 items-start cursor-pointer">
+                  <span>Auto-show Output Preview</span>
+                  <span className="font-normal leading-snug text-muted-foreground">
+                    Automatically show the output preview panel when output is generated.
+                  </span>
+                </Label>
+                <Switch
+                  id="auto-show-preview-switch"
+                  checked={editedSettings.autoShowOutputPreview}
+                  onCheckedChange={(checked) =>
+                    handleSwitchChange('autoShowOutputPreview', checked)
+                  }
+                  disabled={isLoading}
+                />
+              </div>
             </div>
           )}
           {isOpen && !isLoading && !editedSettings && !error && <p>Could not load settings.</p>}

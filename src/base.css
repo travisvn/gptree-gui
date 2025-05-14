@@ -717,3 +717,10 @@
     outline-offset: 0px;
   }
 }
+
+/* Scoped strikethrough removal for output preview */
+.no-strikethrough s,
+.no-strikethrough strike,
+.no-strikethrough del {
+  text-decoration: none !important;
+}
