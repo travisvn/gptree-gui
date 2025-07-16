@@ -108,7 +108,7 @@ GPTree GUI uses the same config system as the [gptree CLI](https://github.com/tr
 ---
 
 🖼️ **Demo Screenshot**  
-![GPTree GUI Screenshot](https://0jg2h4r6p4.ufs.sh/f/ujtLcEbQI4O7KnfAnMHF4jfM0TYVv6lRdakpIhgwiEJ5tzrZ)
+![GPTree GUI Screenshot](https://gptree.dev/screenshot-dark.png)
 
 ## 💬 Feedback Welcome
 
