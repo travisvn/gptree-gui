@@ -199,23 +199,52 @@ jobs:
         run: |
           cd release-assets
 
+          # Debug: List all files to see actual patterns
+          echo "=== All files before renaming ==="
+          ls -la
+          echo "=================================="
+
           # Store original filenames for latest.json updates
           OLD_RPM=$(ls GPTree-*.rpm 2>/dev/null | head -1 || echo "")
           OLD_DEB=$(ls GPTree_*_amd64.deb 2>/dev/null | head -1 || echo "")
           OLD_APPIMAGE=$(ls GPTree_*_amd64.AppImage 2>/dev/null | head -1 || echo "")
-          OLD_EXE=$(ls GPTree_*_x64-setup.exe 2>/dev/null | head -1 || echo "")
-          OLD_MSI=$(ls GPTree_*_x64_en-US.msi 2>/dev/null | head -1 || echo "")
+          OLD_EXE=$(ls GPTree_*_x64-setup.exe GPTree_*_x64_setup.exe GPTree_*-setup.exe GPTree_*.exe 2>/dev/null | head -1 || echo "")
+          OLD_MSI=$(ls GPTree_*_x64_en-US.msi GPTree_*_x64.msi GPTree_*.msi 2>/dev/null | head -1 || echo "")
           OLD_DMG=$(ls GPTree_*_universal.dmg 2>/dev/null | head -1 || echo "")
           OLD_APP_TAR=$(ls GPTree_universal.app.tar.gz 2>/dev/null | head -1 || echo "")
 
-          # Rename assets to stable names
-          mv GPTree-*.rpm GPTree-linux.rpm || true
-          mv GPTree_*_amd64.deb GPTree-linux.deb || true
-          mv GPTree_*_amd64.AppImage GPTree-linux.AppImage || true
-          mv GPTree_*_x64-setup.exe GPTree-windows.exe || true
-          mv GPTree_*_x64_en-US.msi GPTree-windows.msi || true
-          mv GPTree_*_universal.dmg GPTree-mac-universal.dmg || true
-          mv GPTree_universal.app.tar.gz GPTree-mac-universal.app.tar.gz || true
+          # Rename assets to stable names (with more flexible patterns)
+          mv GPTree-*.rpm GPTree-linux.rpm 2>/dev/null || true
+          mv GPTree_*_amd64.deb GPTree-linux.deb 2>/dev/null || true
+          mv GPTree_*_amd64.AppImage GPTree-linux.AppImage 2>/dev/null || true
+
+          # Try multiple Windows EXE patterns
+          if ls GPTree_*_x64-setup.exe 1>/dev/null 2>&1; then
+            mv GPTree_*_x64-setup.exe GPTree-windows.exe
+          elif ls GPTree_*_x64_setup.exe 1>/dev/null 2>&1; then
+            mv GPTree_*_x64_setup.exe GPTree-windows.exe
+          elif ls GPTree_*-setup.exe 1>/dev/null 2>&1; then
+            mv GPTree_*-setup.exe GPTree-windows.exe
+          elif ls GPTree_*.exe 1>/dev/null 2>&1; then
+            mv GPTree_*.exe GPTree-windows.exe
+          fi
+
+          # Try multiple Windows MSI patterns
+          if ls GPTree_*_x64_en-US.msi 1>/dev/null 2>&1; then
+            mv GPTree_*_x64_en-US.msi GPTree-windows.msi
+          elif ls GPTree_*_x64.msi 1>/dev/null 2>&1; then
+            mv GPTree_*_x64.msi GPTree-windows.msi
+          elif ls GPTree_*.msi 1>/dev/null 2>&1; then
+            mv GPTree_*.msi GPTree-windows.msi
+          fi
+
+          mv GPTree_*_universal.dmg GPTree-mac-universal.dmg 2>/dev/null || true
+          mv GPTree_universal.app.tar.gz GPTree-mac-universal.app.tar.gz 2>/dev/null || true
+
+          # Debug: List files after renaming
+          echo "=== All files after renaming ==="
+          ls -la
+          echo "================================="
 
           # Update latest.json to reference renamed files
           if [ -f "latest.json" ]; then
@@ -253,16 +282,71 @@ jobs:
 
       - name: Upload renamed files to GitHub release
         run: |
-          gh release upload "${{ steps.extract_tag.outputs.tag }}" \
-            release-assets/GPTree-linux.rpm \
-            release-assets/GPTree-linux.deb \
-            release-assets/GPTree-linux.AppImage \
-            release-assets/GPTree-windows.exe \
-            release-assets/GPTree-windows.msi \
-            release-assets/GPTree-mac-universal.dmg \
-            release-assets/GPTree-mac-universal.app.tar.gz \
-            release-assets/latest.json \
-            --clobber
+          # Build the upload command dynamically, only including files that exist
+          upload_cmd="gh release upload \"${{ steps.extract_tag.outputs.tag }}\""
+
+          # Check each file and add to upload command if it exists
+          if [ -f "release-assets/GPTree-linux.rpm" ]; then
+            upload_cmd="$upload_cmd release-assets/GPTree-linux.rpm"
+            echo "✅ Will upload: GPTree-linux.rpm"
+          else
+            echo "⚠️  Missing: GPTree-linux.rpm"
+          fi
+
+          if [ -f "release-assets/GPTree-linux.deb" ]; then
+            upload_cmd="$upload_cmd release-assets/GPTree-linux.deb"
+            echo "✅ Will upload: GPTree-linux.deb"
+          else
+            echo "⚠️  Missing: GPTree-linux.deb"
+          fi
+
+          if [ -f "release-assets/GPTree-linux.AppImage" ]; then
+            upload_cmd="$upload_cmd release-assets/GPTree-linux.AppImage"
+            echo "✅ Will upload: GPTree-linux.AppImage"
+          else
+            echo "⚠️  Missing: GPTree-linux.AppImage"
+          fi
+
+          if [ -f "release-assets/GPTree-windows.exe" ]; then
+            upload_cmd="$upload_cmd release-assets/GPTree-windows.exe"
+            echo "✅ Will upload: GPTree-windows.exe"
+          else
+            echo "⚠️  Missing: GPTree-windows.exe"
+          fi
+
+          if [ -f "release-assets/GPTree-windows.msi" ]; then
+            upload_cmd="$upload_cmd release-assets/GPTree-windows.msi"
+            echo "✅ Will upload: GPTree-windows.msi"
+          else
+            echo "⚠️  Missing: GPTree-windows.msi"
+          fi
+
+          if [ -f "release-assets/GPTree-mac-universal.dmg" ]; then
+            upload_cmd="$upload_cmd release-assets/GPTree-mac-universal.dmg"
+            echo "✅ Will upload: GPTree-mac-universal.dmg"
+          else
+            echo "⚠️  Missing: GPTree-mac-universal.dmg"
+          fi
+
+          if [ -f "release-assets/GPTree-mac-universal.app.tar.gz" ]; then
+            upload_cmd="$upload_cmd release-assets/GPTree-mac-universal.app.tar.gz"
+            echo "✅ Will upload: GPTree-mac-universal.app.tar.gz"
+          else
+            echo "⚠️  Missing: GPTree-mac-universal.app.tar.gz"
+          fi
+
+          if [ -f "release-assets/latest.json" ]; then
+            upload_cmd="$upload_cmd release-assets/latest.json"
+            echo "✅ Will upload: latest.json"
+          else
+            echo "⚠️  Missing: latest.json"
+          fi
+
+          # Add --clobber flag and execute
+          upload_cmd="$upload_cmd --clobber"
+
+          echo "Executing: $upload_cmd"
+          eval $upload_cmd
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -270,17 +354,35 @@ jobs:
         run: |
           tag=${{ steps.extract_tag.outputs.tag }}
 
-          # List of assets we want to keep (exactly named)
-          keep_assets=(
-            GPTree-linux.deb
-            GPTree-linux.rpm
-            GPTree-linux.AppImage
-            GPTree-mac-universal.dmg
-            GPTree-mac-universal.app.tar.gz
-            GPTree-windows.exe
-            GPTree-windows.msi
-            latest.json
-          )
+          # Build list of assets we want to keep based on what actually exists
+          keep_assets=()
+
+          if gh release view "$tag" --json assets -q '.assets[].name' | grep -q "GPTree-linux.deb"; then
+            keep_assets+=("GPTree-linux.deb")
+          fi
+          if gh release view "$tag" --json assets -q '.assets[].name' | grep -q "GPTree-linux.rpm"; then
+            keep_assets+=("GPTree-linux.rpm")
+          fi
+          if gh release view "$tag" --json assets -q '.assets[].name' | grep -q "GPTree-linux.AppImage"; then
+            keep_assets+=("GPTree-linux.AppImage")
+          fi
+          if gh release view "$tag" --json assets -q '.assets[].name' | grep -q "GPTree-mac-universal.dmg"; then
+            keep_assets+=("GPTree-mac-universal.dmg")
+          fi
+          if gh release view "$tag" --json assets -q '.assets[].name' | grep -q "GPTree-mac-universal.app.tar.gz"; then
+            keep_assets+=("GPTree-mac-universal.app.tar.gz")
+          fi
+          if gh release view "$tag" --json assets -q '.assets[].name' | grep -q "GPTree-windows.exe"; then
+            keep_assets+=("GPTree-windows.exe")
+          fi
+          if gh release view "$tag" --json assets -q '.assets[].name' | grep -q "GPTree-windows.msi"; then
+            keep_assets+=("GPTree-windows.msi")
+          fi
+          if gh release view "$tag" --json assets -q '.assets[].name' | grep -q "latest.json"; then
+            keep_assets+=("latest.json")
+          fi
+
+          echo "Assets to keep: ${keep_assets[@]}"
 
           # Get all current assets for the release
           all_assets=$(gh release view "$tag" --json assets -q '.assets[].name')
