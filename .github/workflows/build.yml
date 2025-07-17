@@ -199,19 +199,55 @@ jobs:
         run: |
           cd release-assets
 
+          # Store original filenames for latest.json updates
+          OLD_RPM=$(ls GPTree-*.rpm 2>/dev/null | head -1 || echo "")
+          OLD_DEB=$(ls GPTree_*_amd64.deb 2>/dev/null | head -1 || echo "")
+          OLD_APPIMAGE=$(ls GPTree_*_amd64.AppImage 2>/dev/null | head -1 || echo "")
+          OLD_EXE=$(ls GPTree_*_x64-setup.exe 2>/dev/null | head -1 || echo "")
+          OLD_MSI=$(ls GPTree_*_x64_en-US.msi 2>/dev/null | head -1 || echo "")
+          OLD_DMG=$(ls GPTree_*_universal.dmg 2>/dev/null | head -1 || echo "")
+          OLD_APP_TAR=$(ls GPTree_universal.app.tar.gz 2>/dev/null | head -1 || echo "")
+
+          # Rename assets to stable names
           mv GPTree-*.rpm GPTree-linux.rpm || true
           mv GPTree_*_amd64.deb GPTree-linux.deb || true
           mv GPTree_*_amd64.AppImage GPTree-linux.AppImage || true
-
           mv GPTree_*_x64-setup.exe GPTree-windows.exe || true
           mv GPTree_*_x64_en-US.msi GPTree-windows.msi || true
-
           mv GPTree_*_universal.dmg GPTree-mac-universal.dmg || true
           mv GPTree_universal.app.tar.gz GPTree-mac-universal.app.tar.gz || true
 
-          # Rename updater files to stable names  
-          mv latest.json latest.json.bak || true
-          cp latest.json.bak latest.json || true
+          # Update latest.json to reference renamed files
+          if [ -f "latest.json" ]; then
+            echo "Updating latest.json to reference renamed assets..."
+            
+            # Get the base download URL from the original JSON
+            BASE_URL=$(cat latest.json | jq -r '.platforms | to_entries[0].value.url' | sed 's|/[^/]*$||')
+            
+            # Create updated latest.json with stable asset names
+            cat latest.json | \
+              jq --arg base_url "$BASE_URL" '
+                .platforms |= with_entries(
+                  if .key == "linux-x86_64" then
+                    .value.url = ($base_url + "/GPTree-linux.AppImage")
+                  elif .key == "windows-x86_64" then
+                    .value.url = ($base_url + "/GPTree-windows.exe")
+                  elif .key == "darwin-universal" then
+                    .value.url = ($base_url + "/GPTree-mac-universal.dmg")
+                  else
+                    .
+                  end
+                )
+              ' > latest_updated.json
+            
+            # Replace original with updated version
+            mv latest_updated.json latest.json
+            
+            echo "Updated latest.json:"
+            cat latest.json | jq .
+          else
+            echo "Warning: latest.json not found"
+          fi
 
           ls -lh
 
