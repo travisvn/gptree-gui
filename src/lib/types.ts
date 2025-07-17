@@ -59,6 +59,7 @@ export interface AppSettings {
   promptForDirectoryOnStartup: boolean;
   enableFolderCheckboxes: boolean;
   autoShowOutputPreview: boolean;
+  autoUpdateEnabled: boolean;
 }
 
 // Define SessionState interface (from session_state.json)

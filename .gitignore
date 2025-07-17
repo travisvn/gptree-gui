@@ -36,3 +36,7 @@ Info.plist
 tauri.appstore.conf.json
 GPTree.pkg 
 build-universal.sh
+
+CLAUDE.md
+.cursorignore
+.claude

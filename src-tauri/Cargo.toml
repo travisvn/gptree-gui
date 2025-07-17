@@ -1,6 +1,6 @@
 [package]
 name = "gptree-gui"
-version = "0.1.8"
+version = "0.3.0"
 description = "GPTree GUI - A tool for providing LLM context for coding projects"
 authors = ["Travis Van Nimwegen <contact@gptree.dev>"]
 edition = "2021"
@@ -18,18 +18,24 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
-tauri-plugin-fs = "2"
-tauri-plugin-clipboard-manager = "2"
-tauri-plugin-shell = "2"
-tauri-plugin-dialog = "2"
+tauri = { version = "2.0", features = [] }
+tauri-plugin-fs = "2.0"
+tauri-plugin-shell = "2.0"
+tauri-plugin-dialog = "2.0"
+tauri-plugin-clipboard-manager = "2.0"
+tauri-plugin-opener = "2.0"
+tauri-plugin-updater = "2.0"
+tauri-plugin-process = "2.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-ignore = "0.4"                                          # For .gitignore functionality
-walkdir = "2.3"                                         # For directory traversal
-glob = "0.3"                                            # For glob pattern matching
-dirs = "5.0"                                            # For finding home directory
-ron = "0.8"                                             # For configuration files
-thiserror = "1.0"                                       # For error handling
-tokio = { version = "1", features = ["fs", "io-util"] }
+serde_with = "3"
+uuid = { version = "1.10.0", features = ["v4"] }
+walkdir = "2"
+dirs = "5"
+home = "0.5.3"
+path-clean = "1.0.1"
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1.10.2"
+globset = "0.4.13"
+ignore = "0.4.22"
+thiserror = "1.0"

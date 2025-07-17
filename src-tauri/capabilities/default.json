@@ -32,6 +32,7 @@
     "fs:scope-applog-recursive",
     "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-write-text",
-    "opener:allow-open-path"
+    "opener:allow-open-path",
+    "updater:default"
   ]
 }

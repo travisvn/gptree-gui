@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use tauri::Manager;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_opener::OpenerExt;
+use tauri_plugin_updater::UpdaterExt;
 
 // Add ConfigMode enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -28,6 +29,8 @@ enum ConfigMode {
 struct SessionState {
     last_directory: Option<String>,
     last_config_mode: Option<String>,
+    #[serde(default)]
+    recent_directories: Vec<String>,
 }
 
 // Store the app state
@@ -70,6 +73,7 @@ struct AppSettings {
     prompt_for_directory_on_startup: bool,
     enable_folder_checkboxes: bool,
     auto_show_output_preview: bool,
+    auto_update_enabled: bool,
 }
 
 // Default implementation for AppSettings
@@ -80,6 +84,7 @@ impl Default for AppSettings {
             prompt_for_directory_on_startup: false, // Default: prompt user if no last dir (changed to false)
             enable_folder_checkboxes: true,         // <-- Default to true
             auto_show_output_preview: true,         // Default for the new setting
+            auto_update_enabled: true,              // Default: enable auto-updates
         }
     }
 }
@@ -95,6 +100,22 @@ fn get_settings_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, AppError>
     Ok(config_dir.join("settings.json"))
 }
 
+// Helper function to add a directory to recent directories list
+fn add_to_recent_directories(state: &mut SessionState, directory: String) {
+    const MAX_RECENT: usize = 10;
+
+    // Remove if it already exists to avoid duplicates
+    state.recent_directories.retain(|d| d != &directory);
+
+    // Add to the front
+    state.recent_directories.insert(0, directory);
+
+    // Keep only the most recent MAX_RECENT directories
+    if state.recent_directories.len() > MAX_RECENT {
+        state.recent_directories.truncate(MAX_RECENT);
+    }
+}
+
 // Command to select a directory
 #[tauri::command]
 async fn select_directory(app_handle: tauri::AppHandle) -> Result<CommandResult<String>, String> {
@@ -108,6 +129,7 @@ async fn select_directory(app_handle: tauri::AppHandle) -> Result<CommandResult<
             match config::load_session_state(&app_handle) {
                 Ok(mut state) => {
                     state.last_directory = Some(path_str.clone());
+                    add_to_recent_directories(&mut state, path_str.clone());
                     if let Err(e) = config::save_session_state(&app_handle, &state) {
                         eprintln!("[GPTree] Warning: Failed to save session state: {}", e);
                     }
@@ -123,6 +145,53 @@ async fn select_directory(app_handle: tauri::AppHandle) -> Result<CommandResult<
         }
         None => Ok(CommandResult::error("No directory selected".to_string())),
     }
+}
+
+// Command to get recent directories
+#[tauri::command]
+async fn get_recent_directories(
+    app_handle: tauri::AppHandle,
+) -> Result<CommandResult<Vec<String>>, String> {
+    match config::load_session_state(&app_handle) {
+        Ok(state) => Ok(CommandResult::success(state.recent_directories)),
+        Err(e) => {
+            eprintln!(
+                "[GPTree] Warning: Failed to load session state for recent directories: {}",
+                e
+            );
+            Ok(CommandResult::success(Vec::new()))
+        }
+    }
+}
+
+// Command to select from a recent directory
+#[tauri::command]
+async fn select_recent_directory(
+    app_handle: tauri::AppHandle,
+    directory: String,
+) -> Result<CommandResult<String>, String> {
+    // Verify the directory still exists
+    if !std::path::Path::new(&directory).exists() {
+        return Ok(CommandResult::error(
+            "Directory no longer exists".to_string(),
+        ));
+    }
+
+    // Update session state to move this directory to the front of recent list
+    match config::load_session_state(&app_handle) {
+        Ok(mut state) => {
+            state.last_directory = Some(directory.clone());
+            add_to_recent_directories(&mut state, directory.clone());
+            if let Err(e) = config::save_session_state(&app_handle, &state) {
+                eprintln!("[GPTree] Warning: Failed to save session state: {}", e);
+            }
+        }
+        Err(e) => {
+            eprintln!("[GPTree] Warning: Failed to load session state: {}", e);
+        }
+    }
+
+    Ok(CommandResult::success(directory))
 }
 
 // Command to load a directory and its structure
@@ -599,6 +668,132 @@ async fn diagnose_config_file(
     Ok(CommandResult::success(diagnosis))
 }
 
+// Command to check for updates
+#[tauri::command]
+async fn check_for_updates(
+    app_handle: tauri::AppHandle,
+) -> Result<CommandResult<serde_json::Value>, String> {
+    use serde_json::json;
+
+    // First check if auto-updates are enabled
+    let settings = match get_app_settings(app_handle.clone()).await {
+        Ok(result) => {
+            if result.success {
+                result.data.unwrap_or_default()
+            } else {
+                AppSettings::default()
+            }
+        }
+        Err(_) => AppSettings::default(),
+    };
+
+    if !settings.auto_update_enabled {
+        return Ok(CommandResult::success(json!({
+            "available": false,
+            "reason": "Auto-updates are disabled"
+        })));
+    }
+
+    match app_handle.updater() {
+        Ok(updater) => match updater.check().await {
+            Ok(update_option) => {
+                if let Some(update) = update_option {
+                    Ok(CommandResult::success(json!({
+                        "available": true,
+                        "version": update.version,
+                        "date": update.date.map(|d| d.to_string()),
+                        "body": update.body
+                    })))
+                } else {
+                    Ok(CommandResult::success(json!({
+                        "available": false,
+                        "reason": "No updates available"
+                    })))
+                }
+            }
+            Err(e) => Ok(CommandResult::error(format!(
+                "Failed to check for updates: {}",
+                e
+            ))),
+        },
+        Err(e) => Ok(CommandResult::error(format!(
+            "Failed to initialize updater: {}",
+            e
+        ))),
+    }
+}
+
+// Command to download and install an update
+#[tauri::command]
+async fn install_update(app_handle: tauri::AppHandle) -> Result<CommandResult<bool>, String> {
+    // Check if auto-updates are enabled
+    let settings = match get_app_settings(app_handle.clone()).await {
+        Ok(result) => {
+            if result.success {
+                result.data.unwrap_or_default()
+            } else {
+                AppSettings::default()
+            }
+        }
+        Err(_) => AppSettings::default(),
+    };
+
+    if !settings.auto_update_enabled {
+        return Ok(CommandResult::error(
+            "Auto-updates are disabled".to_string(),
+        ));
+    }
+
+    match app_handle.updater() {
+        Ok(updater) => match updater.check().await {
+            Ok(update_option) => {
+                if let Some(update) = update_option {
+                    match update
+                        .download_and_install(
+                            |chunk_length, content_length| {
+                                println!(
+                                    "Downloaded {} of {} bytes",
+                                    chunk_length,
+                                    content_length.unwrap_or(0)
+                                );
+                            },
+                            || {
+                                println!("Download finished, installing...");
+                            },
+                        )
+                        .await
+                    {
+                        Ok(_) => {
+                            println!("Update installed successfully, restarting...");
+                            app_handle.restart();
+                        }
+                        Err(e) => {
+                            return Ok(CommandResult::error(format!(
+                                "Failed to install update: {}",
+                                e
+                            )))
+                        }
+                    }
+                } else {
+                    return Ok(CommandResult::error("No updates available".to_string()));
+                }
+            }
+            Err(e) => {
+                return Ok(CommandResult::error(format!(
+                    "Failed to check for updates: {}",
+                    e
+                )))
+            }
+        },
+        Err(e) => {
+            return Ok(CommandResult::error(format!(
+                "Failed to initialize updater: {}",
+                e
+            )))
+        }
+    }
+}
+
 // Main run function
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -613,9 +808,13 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(initial_state)
         .invoke_handler(tauri::generate_handler![
             select_directory,
+            get_recent_directories,
+            select_recent_directory,
             load_directory,
             get_config,
             update_config,
@@ -629,7 +828,9 @@ pub fn run() {
             get_app_settings,
             save_app_settings,
             set_last_config_mode,
-            diagnose_config_file
+            diagnose_config_file,
+            check_for_updates,
+            install_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

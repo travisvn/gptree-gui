@@ -4,6 +4,9 @@ import DirectoryTree from "./components/DirectoryTree";
 import ConfigPanel from "./components/ConfigPanel";
 import OutputPanel from "./components/OutputPanel";
 import SettingsModal from "./components/SettingsModal";
+import { RecentFolders } from "./components/RecentFolders";
+import { RecentFoldersDropdown } from "./components/RecentFoldersDropdown";
+import { UpdateNotification } from "./components/UpdateNotification";
 // import GptreeLogo from './assets/gptree_logo.svg?react';
 import { Tooltip } from 'react-tooltip';
 import { ArrowClockwise, Funnel, Gear, Moon, Sun } from '@phosphor-icons/react';
@@ -287,6 +290,16 @@ function App() {
       originalConfigRef.current = null;
     }
   };
+
+  const handleSelectRecentDirectory = useCallback(async (directory: string): Promise<void> => {
+    clearMessages();
+    try {
+      setCurrentDirectory(directory);
+      await loadDirectory(directory, settings, initialConfigModePreference);
+    } catch (err) {
+      setError(`Error loading recent directory: ${err}`);
+    }
+  }, [settings, setError, clearMessages, initialConfigModePreference]);
 
   const loadDirectory = async (path: string, currentSettings: AppSettings | null, modePreference: 'global' | 'local' | null) => {
     log(`Loading directory structure for: ${path}`, 'debug');
@@ -872,6 +885,10 @@ function App() {
           >
             {theme === "light" ? <Moon weight="fill" /> : <Sun weight="fill" />}
           </button>
+          <RecentFoldersDropdown
+            onSelectRecent={handleSelectRecentDirectory}
+            disabled={loading}
+          />
           <button
             onClick={() => handleSelectDirectory(settings)}
             disabled={loading}
@@ -945,14 +962,32 @@ function App() {
           <div className="flex flex-col items-center justify-center w-full text-center text-[--light-text] p-8">
             {/* <GptreeLogo className="h-16 w-auto mb-4 text-muted-foreground opacity-50" /> */}
             <h2 className="text-xl font-semibold mb-2">Welcome to GPTree!</h2>
-            <p className="mb-4">To get started, please select a project directory.</p>
-            <button
-              onClick={() => handleSelectDirectory(settings)}
-              className="button primary-button px-6 py-2"
-              disabled={loading}
-            >
-              Select Project Directory
-            </button>
+            <p className="mb-6">To get started, please select a project directory.</p>
+
+            <div className="w-full max-w-md space-y-4">
+              <RecentFolders
+                onSelectRecent={handleSelectRecentDirectory}
+                className="text-left"
+              />
+
+              {/* Divider with "or" text */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-[--bg] px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleSelectDirectory(settings)}
+                className="button primary-button px-6 py-2 w-full"
+                disabled={loading}
+              >
+                Browse for Project Directory
+              </button>
+            </div>
           </div>
         )}
 
@@ -1127,6 +1162,7 @@ function App() {
           borderRadius: '4px',
         }}
       />
+      <UpdateNotification />
     </div>
   );
 }

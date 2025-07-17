@@ -151,6 +151,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   disabled={isLoading}
                 />
               </div>
+              <div className="flex items-center justify-between space-x-2">
+                <Label htmlFor="auto-update-switch" className="flex flex-col space-y-1 items-start cursor-pointer">
+                  <span>Enable Automatic Updates</span>
+                  <span className="font-normal leading-snug text-muted-foreground">
+                    Automatically check for and install app updates in the background.
+                  </span>
+                </Label>
+                <Switch
+                  id="auto-update-switch"
+                  checked={editedSettings.autoUpdateEnabled}
+                  onCheckedChange={(checked) =>
+                    handleSwitchChange('autoUpdateEnabled', checked)
+                  }
+                  disabled={isLoading}
+                />
+              </div>
             </div>
           )}
           {isOpen && !isLoading && !editedSettings && !error && <p>Could not load settings.</p>}
