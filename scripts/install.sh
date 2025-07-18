@@ -2,7 +2,7 @@
 
   set -e
 
-  REPO="travisvnn/gptree"
+  REPO="travisvn/gptree-gui"
   APP="GPTree"
   ARCH=$(uname -m)
   OS=$(uname -s)
