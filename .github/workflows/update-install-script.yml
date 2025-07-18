@@ -13,8 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repo (pushable branch)
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.release.target_commitish }}
+          fetch-depth: 0
 
       - name: Set up Node.js (for jq on mac, or use pre-installed tools)
         uses: actions/setup-node@v3

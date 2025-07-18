@@ -250,10 +250,16 @@ jobs:
           if [ -f "latest.json" ]; then
             echo "Updating latest.json to reference renamed assets..."
             
+            # Debug: Show original latest.json content
+            echo "Original latest.json content:"
+            cat latest.json | jq .
+            
             # Get the base download URL from the original JSON
             BASE_URL=$(cat latest.json | jq -r '.platforms | to_entries[0].value.url' | sed 's|/[^/]*$||')
+            echo "Base URL: $BASE_URL"
             
             # Create updated latest.json with stable asset names
+            # Use more flexible matching for darwin platforms
             cat latest.json | \
               jq --arg base_url "$BASE_URL" '
                 .platforms |= with_entries(
@@ -261,8 +267,8 @@ jobs:
                     .value.url = ($base_url + "/GPTree-linux.AppImage")
                   elif .key == "windows-x86_64" then
                     .value.url = ($base_url + "/GPTree-windows.exe")
-                  elif .key == "darwin-universal" then
-                    .value.url = ($base_url + "/GPTree-mac-universal.dmg")
+                  elif (.key | startswith("darwin")) then
+                    .value.url = ($base_url + "/GPTree-mac-universal.app.tar.gz")
                   else
                     .
                   end
