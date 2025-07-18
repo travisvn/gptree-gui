@@ -42,7 +42,7 @@
   detect_and_install() {
     echo "📦 Installing $APP for $ARCH on $OS..."
 
-    if [[ "$OS" != "Linux" ]]; then
+    if [ "$OS" != "Linux" ]; then
       echo "❌ This installer only supports Linux. Please download manually for macOS or Windows."
       exit 1
     fi
